@@ -1,7 +1,8 @@
 class UserAccount {
   final int? accountId;
   final String? username;
-  final String? password;
+  final String?
+  password; // Only for sending to server, not expected in response
   final String? dept;
   final String? prog;
   final int? sem;
@@ -19,18 +20,17 @@ class UserAccount {
 
   factory UserAccount.fromJson(Map<String, dynamic> json) {
     return UserAccount(
-      accountId: json['account_id'],
+      accountId: int.tryParse(json['account_id']?.toString() ?? ''),
       username: json['username'],
-      password: json['password'],
       dept: json['dept'],
       prog: json['prog'],
-      sem: json['sem'],
+      sem: int.tryParse(json['sem']?.toString() ?? ''),
       sec: json['sec'],
     );
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {
+    final data = <String, dynamic>{
       'account_id': accountId,
       'username': username,
       'password': password,
@@ -39,16 +39,7 @@ class UserAccount {
       'sem': sem,
       'sec': sec,
     };
-
-    // Remove null values but keep the map structure
     data.removeWhere((key, value) => value == null);
-
-    print('UserAccount toJson: $data'); // Debug print
     return data;
-  }
-
-  @override
-  String toString() {
-    return 'UserAccount(accountId: $accountId, username: $username, dept: $dept, prog: $prog, sem: $sem, sec: $sec)';
   }
 }

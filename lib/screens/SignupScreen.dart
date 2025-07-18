@@ -1,7 +1,7 @@
 import 'package:classmonitor/screens/LoginScreen.dart';
 import 'package:classmonitor/utils/ApiService.dart';
 import 'package:flutter/material.dart';
-import '../models/user_account.dart';
+import 'package:classmonitor/models/user_account.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -21,9 +21,19 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _loading = false;
   String? _error;
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _deptController.dispose();
+    _progController.dispose();
+    _semController.dispose();
+    _secController.dispose();
+    super.dispose();
+  }
+
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
       _loading = true;
       _error = null;
@@ -38,24 +48,25 @@ class _SignupScreenState extends State<SignupScreen> {
         sem: int.tryParse(_semController.text.trim()),
         sec: _secController.text.trim(),
       );
-
       final success = await UserAccountService().signUp(user);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signup successful! Please login.')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      } else {
-        setState(() => _error = 'Signup failed. Try again.');
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Signup successful! Please login.')),
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        } else {
+          setState(() => _error = 'Signup failed. Please try again.');
+        }
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -63,69 +74,77 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Sign Up')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Username is required' : null,
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20.0),
+          children: [
+            TextFormField(
+              controller: _usernameController,
+              decoration: const InputDecoration(labelText: 'Username'),
+              validator: (v) => v!.isEmpty ? 'Username is required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+              validator: (v) => v!.isEmpty ? 'Password is required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _deptController,
+              decoration: const InputDecoration(labelText: 'Department'),
+              validator: (v) => v!.isEmpty ? 'Department is required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _progController,
+              decoration: const InputDecoration(labelText: 'Program'),
+              validator: (v) => v!.isEmpty ? 'Program is required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _semController,
+              decoration: const InputDecoration(labelText: 'Semester'),
+              keyboardType: TextInputType.number,
+              validator: (v) => v!.isEmpty || int.tryParse(v) == null
+                  ? 'Valid semester is required'
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _secController,
+              decoration: const InputDecoration(labelText: 'Section'),
+              validator: (v) => v!.isEmpty ? 'Section is required' : null,
+            ),
+            const SizedBox(height: 20),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Text(
+                  '❌ $_error',
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (value) =>
-                    value!.isEmpty ? 'Password is required' : null,
-              ),
-              TextFormField(
-                controller: _deptController,
-                decoration: const InputDecoration(labelText: 'Department'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Department is required' : null,
-              ),
-              TextFormField(
-                controller: _progController,
-                decoration: const InputDecoration(labelText: 'Program'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Program is required' : null,
-              ),
-              TextFormField(
-                controller: _semController,
-                decoration: const InputDecoration(labelText: 'Semester'),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                    value!.isEmpty || int.tryParse(value) == null
-                    ? 'Valid semester is required'
-                    : null,
-              ),
-              TextFormField(
-                controller: _secController,
-                decoration: const InputDecoration(labelText: 'Section'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Section is required' : null,
-              ),
-              const SizedBox(height: 20),
-              if (_error != null)
-                Text('❌ $_error', style: const TextStyle(color: Colors.red)),
-              if (_loading) const Center(child: CircularProgressIndicator()),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else
               ElevatedButton(
-                onPressed: _loading ? null : _signUp,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: _signUp,
                 child: const Text('Sign Up'),
               ),
-              TextButton(
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                ),
-                child: const Text('Already have an account? Login'),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
               ),
-            ],
-          ),
+              child: const Text('Already have an account? Login'),
+            ),
+          ],
         ),
       ),
     );

@@ -17,6 +17,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -30,19 +37,24 @@ class _LoginScreenState extends State<LoginScreen> {
         _usernameController.text.trim(),
         _passwordController.text.trim(),
       );
-
-      if (success) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => UserManagementScreen()),
+      if (mounted && success) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const UserManagementScreen()),
         );
       } else {
-        setState(() => _error = 'Invalid username or password');
+        setState(() => _error = 'Invalid username or password.');
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(
+        () => _error = e.toString().replaceFirst(
+          'Exception: ',
+          'Your date and time incorrect. ',
+        ),
+      );
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -50,41 +62,56 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Username is required' : null,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (value) =>
-                    value!.isEmpty ? 'Password is required' : null,
-              ),
-              const SizedBox(height: 20),
-              if (_error != null)
-                Text('❌ $_error', style: const TextStyle(color: Colors.red)),
-              if (_loading) const Center(child: CircularProgressIndicator()),
-              ElevatedButton(
-                onPressed: _loading ? null : _login,
-                child: const Text('Login'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SignupScreen()),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Username is required' : null,
                 ),
-                child: const Text('Need an account? Sign Up'),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Password is required' : null,
+                ),
+                const SizedBox(height: 20),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Text(
+                      '❌ $_error',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                if (_loading)
+                  const CircularProgressIndicator()
+                else
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    onPressed: _login,
+                    child: const Text('Login'),
+                  ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const SignupScreen()),
+                  ),
+                  child: const Text('Need an account? Sign Up'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
