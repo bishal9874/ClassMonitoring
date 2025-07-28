@@ -1,45 +1,78 @@
+import 'package:classmonitor/utils/ApiService.dart';
+import 'package:flutter/material.dart'; // For debugPrint
+
 class UserAccount {
-  final int? accountId;
-  final String? username;
-  final String?
-  password; // Only for sending to server, not expected in response
-  final String? dept;
-  final String? prog;
-  final int? sem;
-  final String? sec;
+  final String? accountId;
+  final String username;
+  final String? password;
+  final String dept;
+  final String prog;
+  final int sem;
+  final String sec;
+  final UserRole role;
 
   UserAccount({
     this.accountId,
-    this.username,
+    required this.username,
     this.password,
-    this.dept,
-    this.prog,
-    this.sem,
-    this.sec,
+    required this.dept,
+    required this.prog,
+    required this.sem,
+    required this.sec,
+    required this.role,
   });
 
   factory UserAccount.fromJson(Map<String, dynamic> json) {
+    debugPrint('Parsing UserAccount from JSON: $json');
+
+    // Normalize role string and handle invalid roles
+    String roleString = (json['role']?.toString().toLowerCase() ?? '');
+    UserRole role;
+    switch (roleString) {
+      case 'student':
+        role = UserRole.student;
+        break;
+      case 'teacher':
+        role = UserRole.teacher;
+        break;
+      case 'superadmin':
+      case 'admin':
+        role = UserRole.superAdmin;
+        break;
+      default:
+        role = UserRole.student; // Fallback to student
+        debugPrint(
+          'Warning: Invalid role "$roleString", defaulting to student',
+        );
+    }
+
     return UserAccount(
-      accountId: int.tryParse(json['account_id']?.toString() ?? ''),
-      username: json['username'],
-      dept: json['dept'],
-      prog: json['prog'],
-      sem: int.tryParse(json['sem']?.toString() ?? ''),
-      sec: json['sec'],
+      accountId: json['account_id']?.toString(),
+      username: json['username']?.toString() ?? '',
+      password: json['password']?.toString(),
+      dept: json['dept']?.toString() ?? '',
+      prog: json['prog']?.toString() ?? '',
+      sem: int.tryParse(json['sem']?.toString() ?? '0') ?? 0,
+      sec: json['sec']?.toString() ?? '',
+      role: role,
     );
   }
 
   Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{
-      'account_id': accountId,
+    final Map<String, dynamic> data = {
       'username': username,
-      'password': password,
       'dept': dept,
       'prog': prog,
       'sem': sem,
       'sec': sec,
+      'role': role.name,
     };
-    data.removeWhere((key, value) => value == null);
+    if (accountId != null && accountId!.isNotEmpty) {
+      data['account_id'] = accountId;
+    }
+    if (password != null && password!.isNotEmpty) {
+      data['password'] = password;
+    }
     return data;
   }
 }

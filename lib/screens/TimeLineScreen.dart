@@ -29,17 +29,20 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Smart Class Checker')),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        itemCount: DataModels.periods.length,
-        itemBuilder: (context, index) {
-          final period = DataModels.periods[index];
-          return ClassPeriodCard(
-            period: period,
-            onCardTapped: () => _markPeriodAsDone(period),
-            onRemarkSaved: (newRemark) => _updateRemark(period, newRemark),
-          );
-        },
+      body: Container(
+        decoration: BoxDecoration(color: Colors.white),
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 20.0),
+          itemCount: DataModels.periods.length,
+          itemBuilder: (context, index) {
+            final period = DataModels.periods[index];
+            return ClassPeriodCard(
+              period: period,
+              onCardTapped: () => _markPeriodAsDone(period),
+              onRemarkSaved: (newRemark) => _updateRemark(period, newRemark),
+            );
+          },
+        ),
       ),
     );
   }

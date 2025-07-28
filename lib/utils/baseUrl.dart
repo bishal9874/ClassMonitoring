@@ -2,22 +2,22 @@
 class ApiConfig {
   final String baseUrl;
   final String contentType;
-  final String authToken;
+  // final String authToken;
 
   const ApiConfig({
     required this.baseUrl,
     required this.contentType,
-    required this.authToken,
+    // required this.authToken,
   });
 
   @override
   String toString() {
-    return 'ApiConfig(baseUrl: $baseUrl, contentType: $contentType, authToken: $authToken)';
+    return 'ApiConfig(baseUrl: $baseUrl, contentType: $contentType)';
   }
 }
 
 final myApiConfig = ApiConfig(
   baseUrl: 'https://classmonitor.aucseapp.in/',
   contentType: 'application/json',
-  authToken: 'Bearer secure',
+  // authToken: 'Bearer secure',
 );
