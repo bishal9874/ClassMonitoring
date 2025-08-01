@@ -2,7 +2,6 @@ enum PeriodStatus { upcoming, ongoing, completed, missed }
 
 class ClassPeriod {
   final String subject;
-  final String teacher;
   final DateTime startTime;
   final DateTime endTime;
   bool isManuallyCompleted;
@@ -10,7 +9,6 @@ class ClassPeriod {
 
   ClassPeriod({
     required this.subject,
-    required this.teacher,
     required this.startTime,
     required this.endTime,
     this.isManuallyCompleted = false,

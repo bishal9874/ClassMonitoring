@@ -197,7 +197,7 @@ class ApiService {
             username: username,
             dept: '',
             prog: '',
-            sem: 0,
+            sem: '',
             sec: '', // Default values for missing details
             role: UserRole
                 .superAdmin, // Confirm superAdmin as the default fallback
@@ -412,6 +412,35 @@ class ApiService {
     }
   }
 
+  // -- UPDATE USER ---
+  static Future<bool> updateUser(UserAccount user) async {
+    try {
+      final response = await _withRetry(
+        () => _dio.put('/admin/user_account.php', data: user.toJson()),
+        3,
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  // --- DELETE USER ---
+  static Future<bool> deleteUser(String account_id) async {
+    try {
+      final response = await _withRetry(
+        () => _dio.delete(
+          '/admin/user_account.php',
+          data: {'account_id': account_id},
+        ),
+        3,
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
   // --- Class Statistics Management ---
   static Future<List<ClassStat>> fetchClassStatsByDate(
     DateTime date, {
@@ -458,6 +487,129 @@ class ApiService {
         3,
       );
       return response.statusCode == 200;
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  static Future<List<String>> getDepartments() async {
+    try {
+      final response = await _withRetry(
+        () => _dio.get('/common/get_departments.php'),
+        3,
+      );
+      if (response.statusCode == 200 &&
+          response.data is Map &&
+          response.data['departments'] != null) {
+        final List<dynamic> data = response.data['departments'];
+        return data.map((e) => e.toString()).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  static Future<List<String>> getPrograms(String department) async {
+    try {
+      final response = await _withRetry(
+        () => _dio.get(
+          '/common/get_programs.php',
+          queryParameters: {'dept': department},
+        ),
+        3,
+      );
+      if (response.statusCode == 200 &&
+          response.data is Map &&
+          response.data['programs'] != null) {
+        final List<dynamic> data = response.data['programs'];
+        return data.map((e) => e.toString()).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  static Future<List<String>> getSemesters(
+    String department,
+    String program,
+  ) async {
+    try {
+      final response = await _withRetry(
+        () => _dio.get(
+          '/common/get_semesters.php',
+          queryParameters: {'dept': department, 'prog': program},
+        ),
+        3,
+      );
+      if (response.statusCode == 200 &&
+          response.data is Map &&
+          response.data['semesters'] != null) {
+        final List<dynamic> data = response.data['semesters'];
+        return data.map((e) => e.toString()).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  static Future<List<String>> getSections(
+    String department,
+    String program,
+    String semester,
+  ) async {
+    try {
+      final response = await _withRetry(
+        () => _dio.get(
+          '/common/get_sections.php',
+          queryParameters: {
+            'dept': department,
+            'prog': program,
+            'sem': semester,
+          },
+        ),
+        3,
+      );
+      if (response.statusCode == 200 &&
+          response.data is Map &&
+          response.data['sections'] != null) {
+        final List<dynamic> data = response.data['sections'];
+        return data.map((e) => e.toString()).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e));
+    }
+  }
+
+  static Future<List<UserAccount>> getUsersByFilters(
+    String department,
+    String program,
+    String semester,
+    String section,
+  ) async {
+    try {
+      final response = await _withRetry(
+        () => _dio.get(
+          '/admin/filtered_users.php',
+          queryParameters: {
+            'dept': department,
+            'prog': program,
+            'sem': semester,
+            'sec': section,
+          },
+        ),
+        3,
+      );
+      if (response.statusCode == 200 &&
+          response.data is Map &&
+          response.data['users'] != null) {
+        final List<dynamic> data = response.data['users'];
+        return data.map((json) => UserAccount.fromJson(json)).toList();
+      }
+      return [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }

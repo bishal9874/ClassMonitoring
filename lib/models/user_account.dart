@@ -7,7 +7,7 @@ class UserAccount {
   final String? password;
   final String dept;
   final String prog;
-  final int sem;
+  final String sem;
   final String sec;
   final UserRole role;
 
@@ -50,10 +50,10 @@ class UserAccount {
       accountId: json['account_id']?.toString(),
       username: json['username']?.toString() ?? '',
       password: json['password']?.toString(),
-      dept: json['dept']?.toString() ?? '',
-      prog: json['prog']?.toString() ?? '',
-      sem: int.tryParse(json['sem']?.toString() ?? '0') ?? 0,
-      sec: json['sec']?.toString() ?? '',
+      dept: json['dept'] ?? 'N/A',
+      prog: json['prog'] ?? 'N/A',
+      sem: json['sem']?.toString() ?? 'N/A', // Ensure sem is a string
+      sec: json['sec'] ?? 'N/A',
       role: role,
     );
   }

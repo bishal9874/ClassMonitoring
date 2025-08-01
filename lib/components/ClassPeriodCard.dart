@@ -1,57 +1,418 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-// Assuming models/classesDataModel.dart contains ClassPeriod and PeriodStatus
+import 'package:google_fonts/google_fonts.dart';
 import 'package:classmonitor/models/classesDataModel.dart';
+import 'package:classmonitor/models/user_account.dart';
 
 class ClassPeriodCard extends StatelessWidget {
   final ClassPeriod period;
+  final UserAccount user;
+  final int? selectedBatch;
   final VoidCallback onCardTapped;
   final Function(String) onRemarkSaved;
 
   const ClassPeriodCard({
     super.key,
     required this.period,
+    required this.user,
+    required this.selectedBatch,
     required this.onCardTapped,
     required this.onRemarkSaved,
   });
 
-  // Helper method to show the remark dialog
   void _showRemarkDialog(BuildContext context) {
     final remarkController = TextEditingController(text: period.remark);
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add/Edit Remark'),
-          content: TextField(
-            controller: remarkController,
-            decoration: const InputDecoration(
-              hintText: "Enter your remarks here...",
-              border: OutlineInputBorder(), // Add a border for better visual
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        final mediaQuery = MediaQuery.of(dialogContext);
+        final screenWidth = mediaQuery.size.width;
+        final screenHeight = mediaQuery.size.height;
+
+        const double kTabletBreakpoint = 600.0;
+        const double kLargeScreenBreakpoint = 900.0;
+
+        final isTablet = screenWidth > kTabletBreakpoint;
+        final isLargeScreen = screenWidth > kLargeScreenBreakpoint;
+
+        final dialogWidth = isLargeScreen
+            ? screenWidth * 0.4
+            : isTablet
+            ? screenWidth * 0.6
+            : screenWidth * 0.9;
+        final maxDialogHeight = screenHeight * 0.8;
+
+        final titleSize = isLargeScreen
+            ? 28.0
+            : isTablet
+            ? 26.0
+            : 24.0;
+        final subtitleSize = isLargeScreen
+            ? 16.0
+            : isTablet
+            ? 15.0
+            : 14.0;
+        final textFieldSize = isLargeScreen
+            ? 18.0
+            : isTablet
+            ? 17.0
+            : 16.0;
+        final buttonTextSize = isLargeScreen
+            ? 18.0
+            : isTablet
+            ? 17.0
+            : 16.0;
+        final hintTextSize = isLargeScreen
+            ? 18.0
+            : isTablet
+            ? 17.0
+            : 16.0;
+
+        final dialogPadding = isLargeScreen
+            ? 32.0
+            : isTablet
+            ? 28.0
+            : 24.0;
+        final iconSize = isLargeScreen
+            ? 28.0
+            : isTablet
+            ? 26.0
+            : 24.0;
+        final iconPadding = isLargeScreen
+            ? 16.0
+            : isTablet
+            ? 14.0
+            : 12.0;
+        final headerSpacing = isLargeScreen
+            ? 20.0
+            : isTablet
+            ? 18.0
+            : 16.0;
+        final sectionSpacing = isLargeScreen
+            ? 32.0
+            : isTablet
+            ? 28.0
+            : 24.0;
+        final buttonRowSpacing = isLargeScreen
+            ? 40.0
+            : isTablet
+            ? 36.0
+            : 32.0;
+        final buttonHeight = isLargeScreen
+            ? 56.0
+            : isTablet
+            ? 52.0
+            : 48.0;
+        final buttonSpacing = 16.0;
+        final verticalButtonSpacing = 12.0;
+
+        final textFieldMaxLines = isTablet ? 5 : 4;
+        final textFieldMinLines = isTablet ? 4 : 3;
+        final textFieldContentPadding = isLargeScreen
+            ? 24.0
+            : isTablet
+            ? 22.0
+            : 20.0;
+
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: dialogWidth,
+              maxHeight: maxDialogHeight,
             ),
-            maxLines: 3,
-            minLines: 1, // Allow it to be single line if content is short
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                onRemarkSaved(remarkController.text);
-                Navigator.of(context).pop();
-              },
-              // Style the save button a bit more
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+            child: Dialog(
+              elevation: 16,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
               ),
-              child: const Text('Save'),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF8F9FA), Color(0xFFE3F2FD)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.all(dialogPadding),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(iconPadding),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF667EEA),
+                                    Color(0xFF764BA2),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF667EEA,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.edit_note_rounded,
+                                color: Colors.white,
+                                size: iconSize,
+                              ),
+                            ),
+                            SizedBox(width: headerSpacing),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Add Remark',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: titleSize,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF2D3748),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: isTablet ? 4 : 2),
+                                  Text(
+                                    'Share your thoughts about this class',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: subtitleSize,
+                                      color: const Color(0xFF718096),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: sectionSpacing),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: remarkController,
+                            maxLines: textFieldMaxLines,
+                            minLines: textFieldMinLines,
+                            autofocus: true,
+                            style: GoogleFonts.poppins(
+                              fontSize: textFieldSize,
+                              color: const Color(0xFF2D3748),
+                              height: 1.5,
+                            ),
+                            decoration: InputDecoration(
+                              hintText:
+                                  "What would you like to note about this class?",
+                              hintStyle: GoogleFonts.poppins(
+                                color: const Color(0xFF9CA3AF),
+                                fontSize: hintTextSize,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: EdgeInsets.all(
+                                textFieldContentPadding,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF667EEA),
+                                  width: 2,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE2E8F0),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: buttonRowSpacing),
+                        isTablet
+                            ? Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildCancelButton(
+                                      dialogContext,
+                                      buttonHeight,
+                                      buttonTextSize,
+                                    ),
+                                  ),
+                                  SizedBox(width: buttonSpacing),
+                                  Expanded(
+                                    child: _buildSaveButton(
+                                      dialogContext,
+                                      remarkController,
+                                      onRemarkSaved,
+                                      buttonHeight,
+                                      buttonTextSize,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: _buildSaveButton(
+                                      dialogContext,
+                                      remarkController,
+                                      onRemarkSaved,
+                                      buttonHeight,
+                                      buttonTextSize,
+                                    ),
+                                  ),
+                                  SizedBox(height: verticalButtonSpacing),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: _buildCancelButton(
+                                      dialogContext,
+                                      buttonHeight,
+                                      buttonTextSize,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ],
+          ),
         );
       },
+    ).whenComplete(() {
+      Future.delayed(const Duration(milliseconds: 50), () {
+        remarkController.dispose();
+      });
+    });
+  }
+
+  Widget _buildCancelButton(
+    BuildContext context,
+    double height,
+    double textSize,
+  ) {
+    return SizedBox(
+      height: height,
+      child: OutlinedButton(
+        onPressed: () => Navigator.of(context).pop(),
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Cancel',
+            style: GoogleFonts.poppins(
+              fontSize: textSize,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(
+    BuildContext context,
+    TextEditingController controller,
+    Function(String) onSaveCallback,
+    double height,
+    double textSize,
+  ) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          final remarkText = controller.text.trim();
+          Navigator.of(context).pop();
+          onSaveCallback(remarkText);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: EdgeInsets.zero,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.save_rounded, color: Colors.white, size: textSize + 4),
+              const SizedBox(width: 8),
+              Text(
+                'Save Remark',
+                style: GoogleFonts.poppins(
+                  fontSize: textSize,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -61,36 +422,30 @@ class ClassPeriodCard extends StatelessWidget {
     final cardTheme = _getThemeForStatus(periodStatus);
     final String startTime = DateFormat.jm().format(period.startTime);
     final String endTime = DateFormat.jm().format(period.endTime);
-
-    // Determine if the card is clickable (only for ongoing periods)
     final bool isClickable = periodStatus == PeriodStatus.ongoing;
-    // Determine if remarks can be added/edited (not for upcoming)
     final bool canAddRemark = periodStatus != PeriodStatus.upcoming;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return GestureDetector(
-      // Only enable tap if the card is clickable
       onTap: isClickable ? onCardTapped : null,
       child: Opacity(
-        // Reduce opacity for non-ongoing cards to visually indicate status
-        opacity: isClickable ? 1.0 : 0.6, // Slightly more pronounced opacity
+        opacity: isClickable ? 1.0 : 0.6,
         child: IntrinsicHeight(
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment
-                .stretch, // Ensure children stretch vertically
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                width: 80, // Consistent width for timeline
+                width: 80,
                 child: Column(
-                  mainAxisAlignment:
-                      MainAxisAlignment.start, // Align timeline items to start
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 12), // Align with card's top padding
+                    const SizedBox(height: 12),
                     Text(
                       startTime,
-                      style: const TextStyle(
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13, // Consistent font size
-                        color: Colors.black87, // Darker color for time
+                        fontSize: isSmallScreen ? 12 : 13,
+                        color: Colors.black87,
                       ),
                     ),
                     Expanded(
@@ -98,26 +453,20 @@ class ClassPeriodCard extends StatelessWidget {
                         child: Column(
                           children: [
                             Expanded(
-                              // Top line segment
                               child: Container(
                                 width: 2,
-                                color: Colors
-                                    .grey
-                                    .shade400, // Lighter grey for timeline
+                                color: Colors.grey.shade400,
                               ),
                             ),
                             Icon(
                               cardTheme.icon,
                               color: cardTheme.color,
-                              size: 28,
+                              size: isSmallScreen ? 26 : 28,
                             ),
                             Expanded(
-                              // Bottom line segment
                               child: Container(
                                 width: 2,
-                                color: Colors
-                                    .grey
-                                    .shade400, // Lighter grey for timeline
+                                color: Colors.grey.shade400,
                               ),
                             ),
                           ],
@@ -126,27 +475,19 @@ class ClassPeriodCard extends StatelessWidget {
                     ),
                     Text(
                       endTime,
-                      style: const TextStyle(
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13, // Consistent font size
-                        color: Colors.black87, // Darker color for time
+                        fontSize: isSmallScreen ? 12 : 13,
+                        color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(
-                      height: 12,
-                    ), // Align with card's bottom padding
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
-
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    0,
-                    12,
-                    16,
-                    12,
-                  ), // Padding around the card
+                  padding: const EdgeInsets.fromLTRB(0, 12, 16, 12),
                   child: Card(
                     elevation: 3.0,
                     shape: RoundedRectangleBorder(
@@ -157,7 +498,7 @@ class ClassPeriodCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -167,23 +508,13 @@ class ClassPeriodCard extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   period.subject,
-                                  style: TextStyle(
+                                  style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                    fontSize: isSmallScreen ? 16 : 18,
                                     color: cardTheme.textColor,
-                                    // decoration:
-                                    //     (periodStatus ==
-                                    //             PeriodStatus.completed ||
-                                    //         periodStatus == PeriodStatus.missed)
-                                    //     ? TextDecoration.lineThrough
-                                    //     : TextDecoration.none,
-                                    decorationColor: cardTheme.textColor
-                                        .withOpacity(0.7),
-                                    decorationThickness: 2.0,
                                   ),
                                 ),
                               ),
-                              // Edit Remark Button (only if remarks can be added)
                               if (canAddRemark)
                                 IconButton(
                                   icon: const Icon(
@@ -192,37 +523,42 @@ class ClassPeriodCard extends StatelessWidget {
                                   ),
                                   onPressed: () => _showRemarkDialog(context),
                                   tooltip: 'Add/Edit Remark',
-                                  splashRadius: 20, // Smaller splash effect
+                                  splashRadius: 20,
                                 ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          // Display teacher or "Enjoy Your Break Time" based on subject
-                          (period.subject == 'Lunch Break')
-                              ? Text(
-                                  'Enjoy Your Break time!',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: cardTheme.textColor.withOpacity(0.8),
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                )
-                              : Text(
-                                  'Teacher: ${period.teacher}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: cardTheme.textColor.withOpacity(0.8),
-                                  ),
-                                ),
+                          if (period.subject == 'Lunch Break')
+                            Text(
+                              'Enjoy Your Break time!',
+                              style: GoogleFonts.poppins(
+                                fontSize: isSmallScreen ? 13 : 14,
+                                color: cardTheme.textColor.withOpacity(0.8),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
                           const SizedBox(height: 8),
                           Text(
                             'Time: $startTime - $endTime',
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: GoogleFonts.poppins(
+                              fontSize: isSmallScreen ? 13 : 14,
                               color: cardTheme.textColor.withOpacity(0.8),
                             ),
                           ),
-                          // Display "IN PROGRESS" tag for ongoing classes
+
+                          if (period.remark != null &&
+                              period.remark!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12.0),
+                              child: Text(
+                                'Remark: ${period.remark}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: isSmallScreen ? 12 : 13,
+                                  fontStyle: FontStyle.italic,
+                                  color: cardTheme.textColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ),
                           if (periodStatus == PeriodStatus.ongoing)
                             Padding(
                               padding: const EdgeInsets.only(top: 12.0),
@@ -237,25 +573,11 @@ class ClassPeriodCard extends StatelessWidget {
                                 ),
                                 child: Text(
                                   'IN PROGRESS',
-                                  style: TextStyle(
+                                  style: GoogleFonts.poppins(
                                     color: cardTheme.color,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontSize: isSmallScreen ? 11 : 12,
                                   ),
-                                ),
-                              ),
-                            ),
-                          // Display remark if available
-                          if (period.remark != null &&
-                              period.remark!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12.0),
-                              child: Text(
-                                'Remark: ${period.remark}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontStyle: FontStyle.italic,
-                                  color: cardTheme.textColor.withOpacity(0.7),
                                 ),
                               ),
                             ),
@@ -272,7 +594,6 @@ class ClassPeriodCard extends StatelessWidget {
     );
   }
 
-  // Helper method to get theme data based on status
   _CardThemeData _getThemeForStatus(PeriodStatus status) {
     switch (status) {
       case PeriodStatus.completed:
@@ -300,6 +621,12 @@ class ClassPeriodCard extends StatelessWidget {
           textColor: Colors.grey.shade700,
         );
     }
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }
 

@@ -1,0 +1,272 @@
+{
+  "departments": [
+    {
+      "name": "Computer Science and Engineering (CSE)",
+      "programs": [
+        {
+          "name": "Computer Science and Engineering (General)",
+          "semesters": {
+            "1": ["A", "B", "C"],
+            "2": ["A", "B", "C", "D"],
+            "3": ["A", "B", "C", "D", "E"],
+            "4": ["A", "B", "C", "D", "E"],
+            "5": ["A", "B", "C", "D", "E"],
+            "6": ["A", "B", "C", "D", "E"],
+            "7": ["A", "B", "C"],
+            "8": ["A", "B"]
+          }
+        },
+        {
+          "name": "CSE (Artificial Intelligence & Machine Learning)",
+          "semesters": {
+            "1": ["A", "B"],
+            "2": ["A", "B"],
+            "3": ["A", "B"],
+            "4": ["A", "B"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "CSE (Cyber Security)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "CSE (Data Science)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "CSE (Cloud Computing)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "Robotics and Artificial Intelligence",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "Computer Science and Engineering & Business Systems",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "Computer Science and Engineering with specialization in SAP",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "BCA (General)",
+          "semesters": {
+            "1": ["A", "B"],
+            "2": ["A", "B"],
+            "3": ["A", "B"],
+            "4": ["A", "B"],
+            "5": ["A", "B"],
+            "6": ["A", "B"]
+          }
+        },
+        {
+          "name": "BCA (Gaming & Animation)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"]
+          }
+        },
+        {
+          "name": "BCA (BFSI)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"]
+          }
+        },
+        {
+          "name": "MCA",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"]
+          }
+        },
+        {
+          "name": "M.Tech (Computer Science Engineering)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"]
+          }
+        },
+        {
+          "name": "M.Tech in Data Science and Digital Transformation",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Electronics and Communication Engineering (ECE)",
+      "programs": [
+        {
+          "name": "Electronics & Communication Engineering",
+          "semesters": {
+            "1": ["A", "B"],
+            "2": ["A", "B", "C"],
+            "3": ["A", "B", "C"],
+            "4": ["A", "B", "C"],
+            "5": ["A", "B", "C"],
+            "6": ["A", "B"],
+            "7": ["A", "B"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "VLSI Design (ECE)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Electrical Engineering (EE)",
+      "programs": [
+        {
+          "name": "Electrical Engineering",
+          "semesters": {
+            "1": ["A", "B"],
+            "2": ["A", "B"],
+            "3": ["A", "B"],
+            "4": ["A", "B"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "Power and Energy Systems (EE)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Civil Engineering (CE)",
+      "programs": [
+        {
+          "name": "Civil Engineering",
+          "semesters": {
+            "1": ["A", "B"],
+            "2": ["A", "B"],
+            "3": ["A", "B"],
+            "4": ["A", "B"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        },
+        {
+          "name": "Structural Engineering (Civil)",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bio-Medical Engineering",
+      "programs": [
+        {
+          "name": "Biomedical Engineering",
+          "semesters": {
+            "1": ["A"],
+            "2": ["A"],
+            "3": ["A"],
+            "4": ["A"],
+            "5": ["A"],
+            "6": ["A"],
+            "7": ["A"],
+            "8": ["A"]
+          }
+        }
+      ]
+    }
+  ]
+}

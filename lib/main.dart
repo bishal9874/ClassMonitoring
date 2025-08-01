@@ -3,7 +3,6 @@ import 'package:classmonitor/screens/StudentDashboard.dart';
 import 'package:classmonitor/screens/adminScreens/SuperAdminDashboard.dart';
 import 'package:classmonitor/screens/TeacherDashboard.dart';
 import 'package:classmonitor/utils/ApiService.dart';
-import 'package:classmonitor/models/user_account.dart'; // Import UserRole enum from here
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -51,6 +50,10 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        appBarTheme: const AppBarTheme(
+          iconTheme: IconThemeData(color: Colors.white),
+          actionsIconTheme: IconThemeData(color: Colors.white),
+        ),
       ),
       home: _getInitialScreen(),
       debugShowCheckedModeBanner: false,

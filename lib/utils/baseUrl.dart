@@ -19,5 +19,4 @@ class ApiConfig {
 final myApiConfig = ApiConfig(
   baseUrl: 'https://classmonitor.aucseapp.in/',
   contentType: 'application/json',
-  // authToken: 'Bearer secure',
 );
