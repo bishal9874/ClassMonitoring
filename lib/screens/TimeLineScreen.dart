@@ -1,7 +1,6 @@
 import 'package:classmonitor/Datas/DataModels.dart';
 import 'package:classmonitor/components/ClassPeriodCard.dart';
 import 'package:classmonitor/models/classesDataModel.dart';
-import 'package:classmonitor/utils/ApiService.dart';
 import 'package:classmonitor/models/user_account.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';

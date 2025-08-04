@@ -1,7 +1,7 @@
 import 'package:classmonitor/models/programDropdowndata.dart';
 import 'package:classmonitor/utils/ApiService.dart';
 import 'package:classmonitor/models/user_account.dart';
-import 'package:collection/collection.dart'; // For firstWhereOrNull
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -23,17 +23,16 @@ class _CreateUserScreenState extends State<CreateUserScreen>
   String? _errorMessage;
   String? _successMessage;
 
-  // Instance of your data loader
   final ClassMonitorData _classMonitorData = ClassMonitorData();
 
   String? _selectedDepartment;
   String? _selectedProgram;
-  String?
-  _selectedSemester; // Still stores as String for DropdownMenuItem value
+  String? _selectedSemester;
   String? _selectedSection;
+  String? _selectedBatch;
 
   List<ProgramData> _availablePrograms = [];
-  List<int> _availableSemesters = []; // Now stores integers directly
+  List<int> _availableSemesters = [];
   List<String> _availableSections = [];
 
   late AnimationController _animationController;
@@ -45,7 +44,7 @@ class _CreateUserScreenState extends State<CreateUserScreen>
   @override
   void initState() {
     super.initState();
-    _loadData(); // Load data when the screen initializes
+    _loadData();
 
     _animationController = AnimationController(
       vsync: this,
@@ -99,7 +98,6 @@ class _CreateUserScreenState extends State<CreateUserScreen>
           'Department: ${dept.name}, Programs: ${dept.programs.map((p) => p.name).toList()}',
         );
         for (var prog in dept.programs) {
-          // Log semester keys as integers
           debugPrint(
             'Program: ${prog.name}, Semesters: ${prog.semesters.keys.toList()}',
           );
@@ -123,6 +121,7 @@ class _CreateUserScreenState extends State<CreateUserScreen>
       _selectedProgram = null;
       _selectedSemester = null;
       _selectedSection = null;
+      _selectedBatch = null;
       _availablePrograms = [];
       _availableSemesters = [];
       _availableSections = [];
@@ -148,6 +147,7 @@ class _CreateUserScreenState extends State<CreateUserScreen>
       _selectedProgram = newValue;
       _selectedSemester = null;
       _selectedSection = null;
+      _selectedBatch = null;
       _availableSemesters = [];
       _availableSections = [];
 
@@ -160,9 +160,8 @@ class _CreateUserScreenState extends State<CreateUserScreen>
             (prog) => prog.name == newValue,
           );
           if (program != null) {
-            // Get semester keys as integers and sort them
             _availableSemesters = program.semesters.keys.toList();
-            _availableSemesters.sort(); // Sorts integers numerically
+            _availableSemesters.sort();
 
             debugPrint(
               'Selected Program: $newValue, Available Semesters (Ints): $_availableSemesters',
@@ -196,7 +195,6 @@ class _CreateUserScreenState extends State<CreateUserScreen>
             (p) => p.name == _selectedProgram,
           );
           if (program != null) {
-            // Parse newValue (String) to int to match the Map<int, List<String>> key type
             final int? semesterKey = int.tryParse(newValue);
             if (semesterKey != null &&
                 program.semesters.containsKey(semesterKey)) {
@@ -232,6 +230,13 @@ class _CreateUserScreenState extends State<CreateUserScreen>
     });
   }
 
+  void _onBatchChanged(String? newValue) {
+    setState(() {
+      _selectedBatch = newValue;
+      debugPrint('Selected Batch: $newValue');
+    });
+  }
+
   void _onRoleChanged(UserRole? newValue) {
     setState(() {
       _selectedRole = newValue!;
@@ -240,19 +245,20 @@ class _CreateUserScreenState extends State<CreateUserScreen>
         _selectedProgram = "N/A";
         _selectedSemester = "N/A";
         _selectedSection = "N/A";
+        _selectedBatch = "N/A";
         _availablePrograms = [];
         _availableSemesters = [];
         _availableSections = [];
       } else {
-        // When switching back to student, clear selections and reload data
         _selectedDepartment = null;
         _selectedProgram = null;
         _selectedSemester = null;
         _selectedSection = null;
+        _selectedBatch = null;
         _availablePrograms = [];
         _availableSemesters = [];
         _availableSections = [];
-        _loadData(); // Re-load data for student role
+        _loadData();
       }
     });
   }
@@ -271,15 +277,15 @@ class _CreateUserScreenState extends State<CreateUserScreen>
       return;
     }
 
-    // For student role, ensure all fields are selected
     if (_selectedRole == UserRole.student &&
         (_selectedDepartment == null ||
             _selectedProgram == null ||
             _selectedSemester == null ||
-            _selectedSection == null)) {
+            _selectedSection == null ||
+            _selectedBatch == null)) {
       setState(() {
         _errorMessage =
-            'Please select all fields: Department, Program, Semester, and Section.';
+            'Please select all fields: Department, Program, Semester, Section, and Batch.';
         _successMessage = null;
       });
       debugPrint('Student role: Missing required fields.');
@@ -298,10 +304,9 @@ class _CreateUserScreenState extends State<CreateUserScreen>
         password: _passwordController.text.trim(),
         dept: _selectedRole == UserRole.teacher ? "N/A" : _selectedDepartment!,
         prog: _selectedRole == UserRole.teacher ? "N/A" : _selectedProgram!,
-        sem: _selectedRole == UserRole.teacher
-            ? "N/A"
-            : _selectedSemester!, // semester is a String
+        sem: _selectedRole == UserRole.teacher ? "N/A" : _selectedSemester!,
         sec: _selectedRole == UserRole.teacher ? "N/A" : _selectedSection!,
+        batch: _selectedRole == UserRole.teacher ? "N/A" : _selectedBatch!,
         role: _selectedRole,
       );
 
@@ -314,16 +319,16 @@ class _CreateUserScreenState extends State<CreateUserScreen>
           _successMessage = 'User "${newUser.username}" created successfully!';
           _usernameController.clear();
           _passwordController.clear();
-          // Reset dropdowns for student role only, if switching back
           if (_selectedRole == UserRole.student) {
             _selectedDepartment = null;
             _selectedProgram = null;
             _selectedSemester = null;
             _selectedSection = null;
+            _selectedBatch = null;
             _availablePrograms = [];
             _availableSemesters = [];
             _availableSections = [];
-            _loadData(); // Reload data to reset dropdowns for next user
+            _loadData();
           }
         });
         debugPrint('User creation successful.');
@@ -361,10 +366,6 @@ class _CreateUserScreenState extends State<CreateUserScreen>
 
         return Scaffold(
           appBar: AppBar(
-            //  leading: IconButton(
-            //     icon: const Icon(Icons.arrow_back, color: Colors.white),
-            //     onPressed: () => Navigator.of(context).pop(),
-            //   ),
             title: Text(
               'Create User',
               style: GoogleFonts.poppins(
@@ -392,13 +393,7 @@ class _CreateUserScreenState extends State<CreateUserScreen>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                // Body gradient from CreateUserScreen
-                colors: [
-                  Color.fromARGB(255, 255, 255, 255),
-                  Color(0xFF667eea),
-                  // Color(0xFFf093fb),
-                ],
-                // stops: [0.0, 0.5, 1.0],
+                colors: [Color.fromARGB(255, 255, 255, 255), Color(0xFF667eea)],
               ),
             ),
             child: SafeArea(
@@ -554,15 +549,13 @@ class _CreateUserScreenState extends State<CreateUserScreen>
                                               icon: Icons.calendar_today,
                                               items: _availableSemesters
                                                   .map(
-                                                    (
-                                                      sem,
-                                                    ) => DropdownMenuItem<String>(
-                                                      value: sem
-                                                          .toString(), // Convert int to String for value
-                                                      child: Text(
-                                                        '$sem',
-                                                      ), // Display int as string
-                                                    ),
+                                                    (sem) =>
+                                                        DropdownMenuItem<
+                                                          String
+                                                        >(
+                                                          value: sem.toString(),
+                                                          child: Text('$sem'),
+                                                        ),
                                                   )
                                                   .toList(),
                                               onChanged: _onSemesterChanged,
@@ -605,6 +598,53 @@ class _CreateUserScreenState extends State<CreateUserScreen>
                                                   : 'Select a Section',
                                               isSmallScreen: isSmallScreen,
                                             ),
+                                      const SizedBox(height: 16),
+                                      _selectedRole == UserRole.teacher
+                                          ? _buildNAField(
+                                              labelText: 'Batch',
+                                              icon: Icons.date_range,
+                                              isSmallScreen: isSmallScreen,
+                                            )
+                                          : _buildDropdownField<String>(
+                                              value: _selectedBatch,
+                                              labelText: 'Batch',
+                                              icon: Icons.date_range,
+                                              items:
+                                                  _classMonitorData
+                                                      .allDepartments
+                                                      .firstWhereOrNull(
+                                                        (dept) =>
+                                                            dept.name ==
+                                                            _selectedDepartment,
+                                                      )
+                                                      ?.programs
+                                                      .firstWhereOrNull(
+                                                        (prog) =>
+                                                            prog.name ==
+                                                            _selectedProgram,
+                                                      )
+                                                      ?.batches // This is the list you want to map
+                                                      .map(
+                                                        (batch) =>
+                                                            DropdownMenuItem<
+                                                              String
+                                                            >(
+                                                              value: batch,
+                                                              child: Text(
+                                                                batch,
+                                                              ),
+                                                            ),
+                                                      )
+                                                      .toList() ??
+                                                  [],
+                                              onChanged: _onBatchChanged,
+                                              validatorText:
+                                                  'Batch is required',
+                                              hintText: _selectedProgram == null
+                                                  ? 'Select a Program first'
+                                                  : 'Select a Batch',
+                                              isSmallScreen: isSmallScreen,
+                                            ),
                                     ],
                                   ),
                                 ),
@@ -640,7 +680,7 @@ class _CreateUserScreenState extends State<CreateUserScreen>
             padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFF6a11cb), Color(0xFF2575fc)],
               ),
               boxShadow: [
@@ -792,10 +832,8 @@ class _CreateUserScreenState extends State<CreateUserScreen>
               ),
               contentPadding: EdgeInsets.all(isSmallScreen ? 12.0 : 20.0),
             ),
-            items: items.isNotEmpty ? items : null, // Disable if no items
-            onChanged: items.isNotEmpty
-                ? onChanged
-                : null, // Disable if no items
+            items: items.isNotEmpty ? items : null,
+            onChanged: items.isNotEmpty ? onChanged : null,
             validator: (v) =>
                 v == null && validatorText.isNotEmpty ? validatorText : null,
             dropdownColor: Colors.white,
@@ -909,7 +947,7 @@ class _CreateUserScreenState extends State<CreateUserScreen>
           ),
           child: Ink(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFF6a11cb), Color(0xFF2575fc)],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -920,11 +958,9 @@ class _CreateUserScreenState extends State<CreateUserScreen>
                   ? SizedBox(
                       height: isSmallScreen ? 20.0 : 24.0,
                       width: isSmallScreen ? 20.0 : 24.0,
-                      child: CircularProgressIndicator(
+                      child: const CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.white,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : Text(

@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:classmonitor/screens/adminScreens/CreateUserScreen.dart';
 import 'package:classmonitor/screens/adminScreens/UserListScreen.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:classmonitor/models/user_account.dart'; // Import UserRole
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -17,33 +16,86 @@ class SuperAdminDashboard extends StatefulWidget {
 class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   int _studentCount = 0;
   int _teacherCount = 0;
+  int _totalClasses = 0;
+  int _ongoingClasses = 0;
+  int _upcomingClasses = 0;
+  int _missedClasses = 0;
+
+  DateTime _selectedDate = DateTime.now(); // New state variable for the date
 
   @override
   void initState() {
     super.initState();
     _fetchUsers();
+    _fetchClassStatus();
   }
 
   Future<void> _fetchUsers() async {
     try {
       final users = await ApiService.getAllUsers();
-      setState(() {
-        _studentCount = users
-            .where((user) => user.role == UserRole.student)
-            .length;
-        _teacherCount = users
-            .where((user) => user.role == UserRole.teacher)
-            .length;
-      });
+      if (mounted) {
+        setState(() {
+          _studentCount = users
+              .where((user) => user.role == UserRole.student)
+              .length;
+          _teacherCount = users
+              .where((user) => user.role == UserRole.teacher)
+              .length;
+        });
+      }
     } catch (e) {
-      print('Error fetching users: $e');
-      // Optionally show a SnackBar or a dialog to the user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load user data. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        print('Error fetching users: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load user data. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Updated method to accept an optional date
+  Future<void> _fetchClassStatus([DateTime? date]) async {
+    final dateToFetch = date ?? _selectedDate;
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (mounted) {
+      setState(() {
+        _totalClasses = 15;
+        _ongoingClasses = 3;
+        _upcomingClasses = 5;
+        _missedClasses = 10;
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: const Color(0xFF2575fc), // Header background color
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2575fc), // Selection color
+              onPrimary: Colors.white, // Text color on primary
+            ),
+            dialogBackgroundColor: Colors.white,
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _fetchClassStatus(picked); // Fetch data for the new date
+      });
     }
   }
 
@@ -62,10 +114,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back, color: Colors.white),
-        //   onPressed: () => Navigator.of(context).pop(),
-        // ),
         title: Text(
           'Super Admin Hub',
           style: GoogleFonts.poppins(
@@ -86,26 +134,19 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              // AppBar gradient from CreateUserScreen
               colors: [Color(0xFF6a11cb), Color(0xFF2575fc)],
             ),
           ),
         ),
         elevation: 4,
-        shadowColor: Colors.black26, // Consistent shadow
+        shadowColor: Colors.black26,
       ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            // Body gradient from CreateUserScreen
-            colors: [
-              Color.fromARGB(255, 255, 255, 255),
-              Color(0xFF667eea),
-              // Color(0xFFf093fb),
-            ],
-            // stops: [0.0, 0.5, 1.0],
+            colors: [Color.fromARGB(255, 255, 255, 255), Color(0xFF667eea)],
           ),
         ),
         child: SafeArea(
@@ -116,21 +157,14 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 30),
-                // Welcome Section
-                Icon(
-                  Icons.school,
-                  size: 80,
-                  color: const Color(0xFF2c3e50),
-                ), // Darker icon color
+                Icon(Icons.school, size: 80, color: const Color(0xFF2c3e50)),
                 const SizedBox(height: 20),
                 Text(
                   'Hello, Super Admin!',
                   style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: const Color(
-                      0xFF2c3e50,
-                    ), // Consistent dark text color
+                    color: const Color(0xFF2c3e50),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -138,25 +172,25 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 Text(
                   'Keep your classroom community thriving!',
                   style: GoogleFonts.poppins(
-                    // Changed to Poppins for consistency
                     fontSize: 16,
-                    color: const Color.fromARGB(
-                      255,
-                      72,
-                      72,
-                      72,
-                    ), // Consistent muted text color
+                    color: const Color.fromARGB(255, 72, 72, 72),
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 30),
 
-                // Action Buttons
                 _buildActionButtons(),
 
                 const SizedBox(height: 30),
 
-                // Enrollment Overview Chart
+                _buildDateSelector(), // New date selector widget
+
+                const SizedBox(height: 30),
+
+                _buildClassStatus(),
+
+                const SizedBox(height: 30),
+
                 _buildChartCard(
                   title: 'Current Enrollment Overview',
                   chart: SfCartesianChart(
@@ -219,7 +253,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
                 const SizedBox(height: 30),
 
-                // Class Status by Program Chart
                 _buildChartCard(
                   title: 'Class Status by Program',
                   chart: SfCartesianChart(
@@ -272,11 +305,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                         yValueMapper: (ProgramData data, _) =>
                             data.studentCount,
                         name: 'Students',
-                        color: const Color(0xFF9013fe), // Consistent purple
+                        color: const Color(0xFF9013fe),
                         dataLabelSettings: DataLabelSettings(
                           isVisible: true,
                           textStyle: GoogleFonts.poppins(
-                            // Poppins for data labels
                             color: Colors.black87,
                             fontSize: 10,
                           ),
@@ -287,7 +319,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
                 const SizedBox(height: 30),
 
-                // Enrollment Trend Over Time Chart
                 _buildChartCard(
                   title: 'Enrollment Trend (Last 6 Months)',
                   chart: SfCartesianChart(
@@ -345,7 +376,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
                 const SizedBox(height: 30),
 
-                // Department-wise Student Distribution Chart
                 _buildChartCard(
                   title: 'Student Distribution by Department',
                   chart: SfCircularChart(
@@ -481,7 +511,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   child: _buildActionButton(
                     icon: Icons.person_add,
                     label: 'Add New Member',
-                    // Use gradient button for primary actions
                     gradient: const LinearGradient(
                       colors: [Color(0xFF4a90e2), Color(0xFF9013fe)],
                       begin: Alignment.topLeft,
@@ -502,18 +531,15 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   child: _buildActionButton(
                     icon: Icons.group,
                     label: 'See All Members',
-                    // Use a subtle background for secondary action
-                    backgroundColor: const Color(0xFFecf0f1), // Light grey
-                    textColor: const Color(0xFF2c3e50), // Dark text
+                    backgroundColor: const Color(0xFFecf0f1),
+                    textColor: const Color(0xFF2c3e50),
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const UserListScreen(),
                         ),
-                      ).then(
-                        (_) => _fetchUsers(),
-                      ); // Refresh user counts when returning
+                      ).then((_) => _fetchUsers());
                     },
                   ),
                 ),
@@ -580,6 +606,155 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateSelector() {
+    return Card(
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      color: Colors.white.withOpacity(0.95),
+      child: InkWell(
+        onTap: () => _selectDate(context),
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Viewing Data For:',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF7f8c8d),
+                    ),
+                  ),
+                  Text(
+                    '${_selectedDate.day}-${_selectedDate.month}-${_selectedDate.year}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF2c3e50),
+                    ),
+                  ),
+                ],
+              ),
+              const Icon(
+                Icons.calendar_today,
+                size: 30,
+                color: Color(0xFF2575fc),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassStatus() {
+    return Card(
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      color: Colors.white.withOpacity(0.95),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Today\'s Class Status',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2c3e50),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 15),
+            Wrap(
+              spacing: 16.0,
+              runSpacing: 16.0,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildMetricCard(
+                  icon: Icons.check_circle_outline,
+                  label: 'Total Classes',
+                  count: _totalClasses,
+                  color: const Color(0xFF2ecc71),
+                ),
+                _buildMetricCard(
+                  icon: Icons.access_time_filled,
+                  label: 'Ongoing Classes',
+                  count: _ongoingClasses,
+                  color: const Color(0xFFf1c40f),
+                ),
+                _buildMetricCard(
+                  icon: Icons.schedule,
+                  label: 'Upcoming Classes',
+                  count: _upcomingClasses,
+                  color: const Color(0xFF3498db),
+                ),
+                _buildMetricCard(
+                  icon: Icons.cancel_outlined,
+                  label: 'Missed Classes',
+                  count: _missedClasses,
+                  color: const Color(0xFFe74c3c),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard({
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: 110,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              Icon(icon, size: 30, color: color),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF2c3e50),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$count',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -1,5 +1,5 @@
-import 'package:classmonitor/utils/ApiService.dart';
-import 'package:flutter/material.dart'; // For debugPrint
+import 'package:classmonitor/utils/ApiService.dart'; // For UserRole enum
+import 'package:flutter/material.dart';
 
 class UserAccount {
   final String? accountId;
@@ -9,6 +9,7 @@ class UserAccount {
   final String prog;
   final String sem;
   final String sec;
+  final String batch; // Corrected: Added the batch field
   final UserRole role;
 
   UserAccount({
@@ -19,13 +20,13 @@ class UserAccount {
     required this.prog,
     required this.sem,
     required this.sec,
+    required this.batch, // Corrected: Added to the constructor
     required this.role,
   });
 
   factory UserAccount.fromJson(Map<String, dynamic> json) {
     debugPrint('Parsing UserAccount from JSON: $json');
 
-    // Normalize role string and handle invalid roles
     String roleString = (json['role']?.toString().toLowerCase() ?? '');
     UserRole role;
     switch (roleString) {
@@ -40,7 +41,7 @@ class UserAccount {
         role = UserRole.superAdmin;
         break;
       default:
-        role = UserRole.student; // Fallback to student
+        role = UserRole.student;
         debugPrint(
           'Warning: Invalid role "$roleString", defaulting to student',
         );
@@ -52,8 +53,11 @@ class UserAccount {
       password: json['password']?.toString(),
       dept: json['dept'] ?? 'N/A',
       prog: json['prog'] ?? 'N/A',
-      sem: json['sem']?.toString() ?? 'N/A', // Ensure sem is a string
+      sem: json['sem']?.toString() ?? 'N/A',
       sec: json['sec'] ?? 'N/A',
+      batch:
+          json['batch']?.toString() ??
+          'N/A', // Corrected: Parse the new batch field
       role: role,
     );
   }
@@ -65,6 +69,7 @@ class UserAccount {
       'prog': prog,
       'sem': sem,
       'sec': sec,
+      'batch': batch, // Corrected: Add the batch field to the JSON output
       'role': role.name,
     };
     if (accountId != null && accountId!.isNotEmpty) {

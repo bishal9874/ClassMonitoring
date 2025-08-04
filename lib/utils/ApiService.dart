@@ -199,6 +199,7 @@ class ApiService {
             prog: '',
             sem: '',
             sec: '', // Default values for missing details
+            batch: '',
             role: UserRole
                 .superAdmin, // Confirm superAdmin as the default fallback
           );

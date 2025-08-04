@@ -19,8 +19,13 @@ class DepartmentData {
 class ProgramData {
   final String name;
   final Map<int, List<String>> semesters;
+  final List<String> batches; // Corrected: Added the batches field
 
-  ProgramData({required this.name, required this.semesters});
+  ProgramData({
+    required this.name,
+    required this.semesters,
+    required this.batches, // Corrected: Added to the constructor
+  });
 
   factory ProgramData.fromJson(Map<String, dynamic> json) {
     // Convert semester keys from String to int
@@ -30,7 +35,14 @@ class ProgramData {
         int.parse(entry.key): List<String>.from(entry.value),
     };
 
-    return ProgramData(name: json['name'], semesters: semesters);
+    // Corrected: Parse the new 'batches' list from JSON
+    final batches = (json['batches'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    return ProgramData(
+      name: json['name'],
+      semesters: semesters,
+      batches: batches, // Corrected: Pass the parsed batches list
+    );
   }
 }
 

@@ -16,6 +16,7 @@ class _UserListScreenState extends State<UserListScreen>
   late Future<List<UserAccount>> _usersFuture;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  UserRole? _selectedRoleFilter;
 
   @override
   void initState() {
@@ -30,15 +31,27 @@ class _UserListScreenState extends State<UserListScreen>
         curve: Curves.easeInOutCubic,
       ),
     );
-    _fetchUsers();
+    _usersFuture = _fetchUsers();
   }
 
-  Future<void> _fetchUsers() {
+  Future<List<UserAccount>> _fetchUsers() async {
     _animationController.reset();
-    setState(() {
-      _usersFuture = ApiService.getAllUsers();
-    });
-    return _animationController.forward();
+    final allUsers = await ApiService.getAllUsers();
+
+    List<UserAccount> filteredUsers;
+
+    if (_selectedRoleFilter != null) {
+      filteredUsers = allUsers
+          .where((user) => user.role == _selectedRoleFilter)
+          .toList();
+    } else {
+      filteredUsers = allUsers;
+    }
+
+    if (mounted) {
+      _animationController.forward();
+    }
+    return filteredUsers;
   }
 
   @override
@@ -47,12 +60,23 @@ class _UserListScreenState extends State<UserListScreen>
     super.dispose();
   }
 
+  void _filterUsersByRole(UserRole? role) {
+    if (mounted) {
+      setState(() {
+        _selectedRoleFilter = role;
+        _usersFuture = _fetchUsers();
+      });
+    }
+  }
+
   Future<void> _navigateToEditScreen(UserAccount user) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (context) => EditUserScreen(user: user)),
     );
     if (result == true) {
-      _fetchUsers();
+      setState(() {
+        _usersFuture = _fetchUsers();
+      });
     }
   }
 
@@ -122,7 +146,9 @@ class _UserListScreenState extends State<UserListScreen>
             ),
           ),
         );
-        _fetchUsers();
+        setState(() {
+          _usersFuture = _fetchUsers();
+        });
       } else {
         throw Exception('Failed to delete user.');
       }
@@ -143,14 +169,52 @@ class _UserListScreenState extends State<UserListScreen>
     }
   }
 
+  Widget _buildRoleFilterDropdown() {
+    return Container(
+      width: 130, // Adjusted to a more flexible width for a better UI
+      height: 40,
+      padding: const EdgeInsets.all(4.0),
+      margin: const EdgeInsets.only(right: 8.0), // Added some margin
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<UserRole?>(
+          value: _selectedRoleFilter,
+          icon: const Icon(Icons.filter_list, color: Colors.white),
+          style: GoogleFonts.poppins(color: Colors.white, fontSize: 16),
+          dropdownColor: const Color(0xFF6a11cb),
+          onChanged: _filterUsersByRole,
+          items: [
+            DropdownMenuItem<UserRole?>(
+              value: null,
+              child: Text(
+                'All Users',
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 16),
+              ),
+            ),
+            ...UserRole.values
+                .map(
+                  (role) => DropdownMenuItem<UserRole>(
+                    value: role,
+                    child: Text(
+                      role.name,
+                      style: GoogleFonts.poppins(color: Colors.white),
+                    ),
+                  ),
+                )
+                .toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back, color: Colors.white),
-        //   onPressed: () => Navigator.of(context).pop(),
-        // ),
         title: Text(
           'All Users',
           style: GoogleFonts.poppins(
@@ -160,9 +224,14 @@ class _UserListScreenState extends State<UserListScreen>
           ),
         ),
         actions: [
+          _buildRoleFilterDropdown(),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _fetchUsers,
+            onPressed: () {
+              setState(() {
+                _usersFuture = _fetchUsers();
+              });
+            },
             tooltip: 'Refresh User List',
           ),
         ],
@@ -223,7 +292,11 @@ class _UserListScreenState extends State<UserListScreen>
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
-                            onPressed: _fetchUsers,
+                            onPressed: () {
+                              setState(() {
+                                _usersFuture = _fetchUsers();
+                              });
+                            },
                             icon: const Icon(
                               Icons.refresh,
                               color: Colors.white,
@@ -274,7 +347,11 @@ class _UserListScreenState extends State<UserListScreen>
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton.icon(
-                          onPressed: _fetchUsers,
+                          onPressed: () {
+                            setState(() {
+                              _usersFuture = _fetchUsers();
+                            });
+                          },
                           icon: const Icon(
                             Icons.refresh,
                             color: Colors.white,
@@ -443,6 +520,11 @@ class _UserListScreenState extends State<UserListScreen>
                                     icon: Icons.class_,
                                     text: 'Sem: ${user.sem}, Sec: ${user.sec}',
                                   ),
+                                  const SizedBox(height: 12),
+                                  _buildInfoRow(
+                                    icon: Icons.date_range,
+                                    text: 'Batch: ${user.batch}',
+                                  ),
                                   // const Divider(height: 24, thickness: 1),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
@@ -531,7 +613,7 @@ class _UserListScreenState extends State<UserListScreen>
             Text(
               buttonName,
               style: GoogleFonts.poppins(
-                fontSize: 15,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: textColor,
               ),
@@ -539,7 +621,7 @@ class _UserListScreenState extends State<UserListScreen>
             SizedBox(width: 5),
             Tooltip(
               message: tooltip,
-              child: Icon(icon, color: color, size: 23),
+              child: Icon(icon, color: color, size: 14),
             ),
           ],
         ),

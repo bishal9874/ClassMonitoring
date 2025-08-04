@@ -21,6 +21,8 @@ class _EditUserScreenState extends State<EditUserScreen>
   late TextEditingController _progController;
   late TextEditingController _semController;
   late TextEditingController _secController;
+  late TextEditingController
+  _batchController; // Corrected: Added batch controller
   late UserRole _selectedRole;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -38,6 +40,9 @@ class _EditUserScreenState extends State<EditUserScreen>
     _progController = TextEditingController(text: user.prog);
     _semController = TextEditingController(text: user.sem);
     _secController = TextEditingController(text: user.sec);
+    _batchController = TextEditingController(
+      text: user.batch,
+    ); // Corrected: Initialized batch controller
     _selectedRole = user.role;
 
     _animationController = AnimationController(
@@ -61,6 +66,7 @@ class _EditUserScreenState extends State<EditUserScreen>
     _progController.dispose();
     _semController.dispose();
     _secController.dispose();
+    _batchController.dispose(); // Corrected: Disposed of batch controller
     _animationController.dispose();
     super.dispose();
   }
@@ -80,6 +86,7 @@ class _EditUserScreenState extends State<EditUserScreen>
         prog: _progController.text,
         sem: _semController.text,
         sec: _secController.text,
+        batch: _batchController.text, // Corrected: Added batch field
         role: _selectedRole,
       );
 
@@ -271,6 +278,14 @@ class _EditUserScreenState extends State<EditUserScreen>
                                   icon: Icons.group,
                                   index: 5,
                                 ),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  // Corrected: Added new text field for batch
+                                  controller: _batchController,
+                                  label: 'Batch',
+                                  icon: Icons.date_range,
+                                  index: 6,
+                                ),
                                 const SizedBox(height: 24),
                                 AnimatedBuilder(
                                   animation: _animationController,
@@ -337,7 +352,7 @@ class _EditUserScreenState extends State<EditUserScreen>
                                         ),
                                       );
                                     }).toList(),
-                                    onChanged: null, // Disables the dropdown
+                                    onChanged: null,
                                     disabledHint: Text(
                                       _selectedRole.name.toUpperCase(),
                                       style: GoogleFonts.poppins(
