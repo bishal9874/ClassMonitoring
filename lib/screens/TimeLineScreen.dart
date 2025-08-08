@@ -1,5 +1,6 @@
 // file: lib/screens/timeline_with_card.dart
 
+import 'package:classmonitor/Datas/DataModels.dart';
 import 'package:classmonitor/component/ClassPeriodCard.dart';
 import 'package:classmonitor/models/class_stat.dart';
 import 'package:flutter/material.dart';
@@ -41,47 +42,6 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
     super.dispose();
   }
 
-  // ... (All methods like _loadAllData, _selectDate, _updateBackend, etc. remain unchanged)
-
-  Widget _buildPeriodsList() {
-    return RefreshIndicator(
-      onRefresh: _loadAllData,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _periods.length,
-        itemBuilder: (context, index) {
-          final period = _periods[index];
-          final periodNumber = _getPeriodNumberFromSubject(period.subject);
-
-          // **FIXED**: Removed the 'user' parameter, as it's not defined
-          // in the ClassPeriodCard constructor.
-          return ClassPeriodCard(
-            period: period,
-            onCardTapped: () {
-              if (periodNumber > 0) {
-                _handleCardTapped(periodNumber);
-              } else {
-                debugPrint('⚠️ Invalid period number for ${period.subject}');
-              }
-            },
-            onRemarkSaved: (newRemark) {
-              if (periodNumber > 0) {
-                _handleRemarkSaved(periodNumber, newRemark);
-              } else {
-                debugPrint(
-                  '⚠️ Invalid period number for remark save: ${period.subject}',
-                );
-              }
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // --- All other methods from your provided code go here ---
-  // (build, _buildErrorState, _loadAllData, etc.)
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -110,16 +70,12 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
         batch: widget.selectedBatch?.toString() ?? widget.user.batch,
       );
 
-      final stats =
-          await ApiService.fetchClassStatsByDate(
-            _selectedDate,
-            userRole: widget.user.role,
-            user: user,
-            cancelToken: _cancelToken,
-          ).timeout(
-            const Duration(seconds: 15),
-            onTimeout: () => throw Exception('Network request timed out'),
-          );
+      final stats = await ApiService.fetchClassStatsByDate(
+        _selectedDate,
+        userRole: widget.user.role,
+        user: user,
+        cancelToken: _cancelToken,
+      );
 
       final ClassStat? currentStat = stats.isNotEmpty ? stats.first : null;
 
@@ -128,37 +84,39 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
       } else {
         _attendanceData = ClassAttendanceData(
           date: DateFormat('yyyy-MM-dd').format(_selectedDate),
-          prog: user.prog ?? '',
-          sem: user.sem ?? '',
-          dept: user.dept ?? '',
-          batch: user.batch ?? '',
-          section: user.sec ?? '',
+          prog: user.prog!,
+          sem: user.sem!,
+          dept: user.dept!,
+          batch: user.batch!,
+          section: user.sec!,
         );
       }
 
-      final newPeriods = List.generate(8, (index) {
-        final periodNumber = index + 1;
-        final startTime = DateTime(
-          _selectedDate.year,
-          _selectedDate.month,
-          _selectedDate.day,
-          8 + periodNumber,
-        );
-        final endTime = startTime.add(const Duration(hours: 1));
+      // Fetch periods from DataModels
+      final newPeriods = DataModels.getPeriodsForDate(_selectedDate).map((
+        period,
+      ) {
+        // debugPrint(
+        //   'Fetched period: ${period.subject}, Start: ${DateFormat('h:mm a').format(period.startTime)}, End: ${DateFormat('h:mm a').format(period.endTime)}',
+        // );
+        final periodNumber = _getPeriodNumberFromSubject(period.subject);
+        final bool hasAttended =
+            (currentStat?.getPeriodStatus(periodNumber) ?? 0) == 1;
 
-        return ClassPeriod(
-          subject: 'P$periodNumber',
-          startTime: startTime,
-          endTime: endTime,
-          status: _getPeriodStatus(startTime, endTime),
+        // Update status for completed but not attended periods
+        PeriodStatus status = period.status;
+        if (status == PeriodStatus.completed && !hasAttended) {
+          status = PeriodStatus.missed;
+        }
+
+        return period.copyWith(
+          status: status,
           remark: currentStat?.getRemark(periodNumber) ?? '',
-          attendanceStatus:
-              (currentStat?.getPeriodStatus(periodNumber) ?? 0) == 1,
+          attendanceStatus: hasAttended,
         );
-      });
+      }).toList();
 
       if (!mounted) return;
-
       setState(() {
         _periods = newPeriods;
         _isLoading = false;
@@ -171,48 +129,15 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = _getUserFriendlyError(e.toString());
-        _periods = _createDefaultPeriods();
+        _errorMessage = "An error occurred while loading data.";
+        _periods = [];
       });
     }
   }
 
-  List<ClassPeriod> _createDefaultPeriods() {
-    return List.generate(8, (index) {
-      final startTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        9 + index,
-      );
-      final endTime = startTime.add(const Duration(hours: 1));
-      return ClassPeriod(
-        subject: 'P${index + 1}',
-        startTime: startTime,
-        endTime: endTime,
-        status: _getPeriodStatus(startTime, endTime),
-        remark: '',
-        attendanceStatus: false,
-      );
-    });
-  }
-
-  PeriodStatus _getPeriodStatus(DateTime start, DateTime end) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final selectedDay = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-    );
-
-    if (selectedDay.isBefore(today)) return PeriodStatus.completed;
-    if (selectedDay.isAfter(today)) return PeriodStatus.upcoming;
-
-    if (now.isBefore(start)) return PeriodStatus.upcoming;
-    if (now.isAfter(end)) return PeriodStatus.completed;
-    return PeriodStatus.ongoing;
-  }
+  // PeriodStatus _getPeriodStatus(DateTime start, DateTime end) {
+  //   return DataModels.getPeriodStatus(start, end, _selectedDate);
+  // }
 
   void _syncAttendanceToPeriods() {
     if (_attendanceData == null) return;
@@ -311,7 +236,7 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
 
   int _getPeriodNumberFromSubject(String subject) {
     if (subject.toUpperCase().startsWith('P')) {
-      final numberStr = subject.substring(1);
+      final numberStr = subject.substring(1).replaceAll(RegExp(r'[^0-9]'), '');
       return int.tryParse(numberStr) ?? 0;
     }
     final regex = RegExp(r'\d+');
@@ -492,7 +417,7 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              _getUserFriendlyError(_errorMessage!),
+              _errorMessage!,
               style: GoogleFonts.poppins(
                 color: Colors.grey.shade600,
                 fontSize: 16,
@@ -511,7 +436,7 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6a11cb).withOpacity(0.3),
+                    color: Color(0xFF6a11cb).withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -598,6 +523,41 @@ class _TimeLineScreenState extends State<TimeLineScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodsList() {
+    return RefreshIndicator(
+      onRefresh: _loadAllData,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: _periods.length,
+        itemBuilder: (context, index) {
+          final period = _periods[index];
+          final periodNumber = _getPeriodNumberFromSubject(period.subject);
+
+          return ClassPeriodCard(
+            period: period,
+            onCardTapped: () {
+              if (periodNumber > 0) {
+                _handleCardTapped(periodNumber);
+              } else {
+                debugPrint('⚠️ Invalid period number for ${period.subject}');
+              }
+            },
+            onRemarkSaved: (newRemark) {
+              if (periodNumber > 0) {
+                _handleRemarkSaved(periodNumber, newRemark);
+              } else {
+                debugPrint(
+                  '⚠️ Invalid period number for remark save: ${period.subject}',
+                );
+              }
+            },
+          );
+        },
       ),
     );
   }

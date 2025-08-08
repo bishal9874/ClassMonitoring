@@ -1,13 +1,12 @@
 import 'package:classmonitor/models/classesDataModel.dart';
-import 'package:classmonitor/utils/baseUrl.dart'; // Imports ApiConfig and myApiConfig
+import 'package:classmonitor/utils/baseUrl.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'dart:io'; // Import for SocketException
-
-import '../models/user_account.dart'; // UserAccount model definition
-import '../models/class_stat.dart'; // ClassStat model definition
-import 'package:flutter/material.dart'; // For debugPrint
+import 'dart:io';
+import '../models/user_account.dart';
+import '../models/class_stat.dart';
+import 'package:flutter/material.dart';
 
 class _Endpoints {
   static const getPeriods = '/student/submit_class_stat.php';
@@ -21,21 +20,20 @@ class ApiService {
   ApiService._();
 
   static final Dio _dio = Dio();
-  static final Dio _timeApiDio = Dio(); // For external time validation
+  static final Dio _timeApiDio = Dio();
   static const String _tokenKey = 'jwt_token';
   static const String _roleKey = 'user_role';
   static const String _usernameKey = 'user_username';
   static const String _isLoggedInKey = 'isUserLoggedIn';
 
-  /// Initializes the Dio instances with base configuration and interceptors.
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
 
     _dio.options = BaseOptions(
-      baseUrl: myApiConfig.baseUrl, // e.g., 'https://classmonitor.aucseapp.in/'
+      baseUrl: myApiConfig.baseUrl,
       headers: {
-        'Content-Type': myApiConfig.contentType, // e.g., 'application/json'
+        'Content-Type': myApiConfig.contentType,
         if (token != null) 'Authorization': 'Bearer $token',
       },
       connectTimeout: const Duration(seconds: 15),
@@ -726,137 +724,8 @@ class ApiService {
       throw Exception('Failed to save data: $e');
     }
   }
-
-  /// Fetches available departments.
-  static Future<List<String>> getDepartments() async {
-    try {
-      final response = await _withRetry(
-        () => _dio.get('/common/get_departments.php'),
-        3,
-      );
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['departments'] != null) {
-        final List<dynamic> data = response.data['departments'];
-        return data.map((e) => e.toString()).toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
-
-  /// Fetches programs for a given department.
-  static Future<List<String>> getPrograms(String department) async {
-    try {
-      final response = await _withRetry(
-        () => _dio.get(
-          '/common/get_programs.php',
-          queryParameters: {'dept': department},
-        ),
-        3,
-      );
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['programs'] != null) {
-        final List<dynamic> data = response.data['programs'];
-        return data.map((e) => e.toString()).toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
-
-  /// Fetches semesters for a given department and program.
-  static Future<List<String>> getSemesters(
-    String department,
-    String program,
-  ) async {
-    try {
-      final response = await _withRetry(
-        () => _dio.get(
-          '/common/get_semesters.php',
-          queryParameters: {'dept': department, 'prog': program},
-        ),
-        3,
-      );
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['semesters'] != null) {
-        final List<dynamic> data = response.data['semesters'];
-        return data.map((e) => e.toString()).toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
-
-  /// Fetches sections for a given department, program, and semester.
-  static Future<List<String>> getSections(
-    String department,
-    String program,
-    String semester,
-  ) async {
-    try {
-      final response = await _withRetry(
-        () => _dio.get(
-          '/common/get_sections.php',
-          queryParameters: {
-            'dept': department,
-            'prog': program,
-            'sem': semester,
-          },
-        ),
-        3,
-      );
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['sections'] != null) {
-        final List<dynamic> data = response.data['sections'];
-        return data.map((e) => e.toString()).toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
-
-  /// Fetches users based on academic filters.
-  static Future<List<UserAccount>> getUsersByFilters(
-    String department,
-    String program,
-    String semester,
-    String section,
-  ) async {
-    try {
-      final response = await _withRetry(
-        () => _dio.get(
-          '/admin/filtered_users.php',
-          queryParameters: {
-            'dept': department,
-            'prog': program,
-            'sem': semester,
-            'sec': section,
-          },
-        ),
-        3,
-      );
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['users'] != null) {
-        final List<dynamic> data = response.data['users'];
-        return data.map((json) => UserAccount.fromJson(json)).toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      throw Exception(_handleDioError(e));
-    }
-  }
 }
 
-/// Extension to simplify accessing period data from ClassStat.
 extension ClassStatExtension on ClassStat {
   String getRemark(int periodNumber) {
     switch (periodNumber) {

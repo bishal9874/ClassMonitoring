@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
-// Make sure the path to your data model is correct for your project
 import '../models/classesDataModel.dart';
 
-/// A card widget that displays information about a single class period.
 class ClassPeriodCard extends StatelessWidget {
   final ClassPeriod period;
   final VoidCallback onCardTapped;
   final Function(String) onRemarkSaved;
 
-  // The constructor does not have a 'user' parameter.
   const ClassPeriodCard({
     super.key,
     required this.period,
@@ -21,85 +18,122 @@ class ClassPeriodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardTheme = _getThemeForStatus(period.status);
-    final String startTime = DateFormat.jm().format(period.startTime);
-    final String endTime = DateFormat.jm().format(period.endTime);
+    PeriodStatus finalStatus = period.status;
+    final bool attendanceMarked = period.attendanceStatus ?? false;
 
-    final bool isClickable = period.status == PeriodStatus.ongoing;
-    final bool canAddRemark = period.status != PeriodStatus.upcoming;
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    if (finalStatus == PeriodStatus.completed && !attendanceMarked) {
+      finalStatus = PeriodStatus.missed;
+    }
+
+    final cardTheme = _getThemeForStatus(finalStatus, period.subject);
+
+    final String startTime = DateFormat('h:mm a').format(period.startTime);
+    final String endTime = DateFormat('h:mm a').format(period.endTime);
+
+    final bool isClickable = finalStatus == PeriodStatus.ongoing;
+    final bool canAddRemark = finalStatus != PeriodStatus.upcoming;
+    final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return GestureDetector(
       onTap: isClickable ? onCardTapped : null,
-      child: Opacity(
-        opacity: isClickable ? 1.0 : 0.75,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildTimeline(startTime, endTime, cardTheme, isSmallScreen),
-              _buildDetailsCard(
-                context,
-                cardTheme,
-                canAddRemark,
-                isSmallScreen,
-                startTime,
-                endTime,
-              ),
-            ],
+      child: AnimatedOpacity(
+        opacity: isClickable ? 1.0 : 0.85,
+        duration: const Duration(milliseconds: 200),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildTimeline(cardTheme, isSmallScreen, startTime, endTime),
+                _buildDetailsCard(
+                  context,
+                  cardTheme,
+                  canAddRemark,
+                  isSmallScreen,
+                  startTime,
+                  endTime,
+                  finalStatus,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ... (All helper methods like _buildTimeline, _buildDetailsCard, _showRemarkDialog, etc. remain unchanged)
   Widget _buildTimeline(
-    String startTime,
-    String endTime,
     _CardThemeData cardTheme,
     bool isSmallScreen,
+    String startTime,
+    String endTime,
   ) {
     return SizedBox(
-      width: 80,
+      width: isSmallScreen ? 80 : 90,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 12),
-          Text(
-            startTime,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.bold,
-              fontSize: isSmallScreen ? 12 : 13,
-              color: Colors.black87,
-            ),
-          ),
+          // Text(
+          //   startTime,
+          //   textAlign: TextAlign.center,
+          //   style: GoogleFonts.poppins(
+          //     fontWeight: FontWeight.w600,
+          //     fontSize: isSmallScreen ? 11 : 12,
+          //     color: Colors.black87,
+          //   ),
+          // ),
+          const SizedBox(height: 8),
           Expanded(
-            child: Column(
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Expanded(
-                  child: Container(width: 2, color: Colors.grey.shade300),
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.grey.shade300,
+                        cardTheme.color.withOpacity(0.5),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                 ),
-                Icon(
-                  cardTheme.icon,
-                  color: cardTheme.color,
-                  size: isSmallScreen ? 26 : 28,
-                ),
-                Expanded(
-                  child: Container(width: 2, color: Colors.grey.shade300),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: cardTheme.color, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cardTheme.color.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    cardTheme.icon,
+                    color: cardTheme.color,
+                    size: isSmallScreen ? 20 : 24,
+                  ),
                 ),
               ],
             ),
           ),
-          Text(
-            endTime,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.bold,
-              fontSize: isSmallScreen ? 12 : 13,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          // Text(
+          //   endTime,
+          //   textAlign: TextAlign.center,
+          //   style: GoogleFonts.poppins(
+          //     fontWeight: FontWeight.w600,
+          //     fontSize: isSmallScreen ? 11 : 12,
+          //     color: Colors.black87,
+          //   ),
+          // ),
         ],
       ),
     );
@@ -112,24 +146,35 @@ class ClassPeriodCard extends StatelessWidget {
     bool isSmallScreen,
     String startTime,
     String endTime,
+    PeriodStatus finalStatus,
   ) {
     final bool attendanceMarked = period.attendanceStatus ?? false;
 
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 12, 16, 12),
-        child: Card(
-          elevation: 4.0,
-          shadowColor: Colors.grey.withOpacity(0.2),
-          shape: RoundedRectangleBorder(
-            side: BorderSide(
-              // Use green for attended, or the status color otherwise
-              color: attendanceMarked
-                  ? Colors.green.shade600
-                  : cardTheme.color.withOpacity(0.8),
-              width: attendanceMarked ? 2.0 : 1.5,
+      child: Card(
+        elevation: 6.0,
+        shadowColor: cardTheme.color.withOpacity(0.3),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+            color: finalStatus == PeriodStatus.missed
+                ? Colors.red.shade400
+                : (attendanceMarked
+                      ? Colors.green.shade600
+                      : cardTheme.color.withOpacity(0.8)),
+            width: attendanceMarked || finalStatus == PeriodStatus.missed
+                ? 2.5
+                : 1.5,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.white, cardTheme.color.withOpacity(0.1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Padding(
             padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
@@ -139,7 +184,6 @@ class ClassPeriodCard extends StatelessWidget {
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
@@ -153,54 +197,91 @@ class ClassPeriodCard extends StatelessWidget {
                     ),
                     if (canAddRemark)
                       IconButton(
-                        icon: const Icon(Icons.edit_note, color: Colors.grey),
+                        icon: Icon(
+                          Icons.edit_note,
+                          color: cardTheme.textColor.withOpacity(0.7),
+                          size: isSmallScreen ? 20 : 24,
+                        ),
                         onPressed: () => _showRemarkDialog(context),
                         tooltip: 'Add/Edit Remark',
                         splashRadius: 20,
                       ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   'Time: $startTime - $endTime',
                   style: GoogleFonts.poppins(
-                    fontSize: isSmallScreen ? 13 : 14,
+                    fontSize: isSmallScreen ? 12 : 13,
                     color: cardTheme.textColor.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (period.remark != null && period.remark!.isNotEmpty)
+                if ((period.remark ?? '').trim().isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Text(
-                      'Remark: ${period.remark}',
-                      style: GoogleFonts.poppins(
-                        fontSize: isSmallScreen ? 12 : 13,
-                        fontStyle: FontStyle.italic,
-                        color: cardTheme.textColor.withOpacity(0.7),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.comment,
+                          size: isSmallScreen ? 14 : 16,
+                          color: cardTheme.textColor.withOpacity(0.7),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Remark: ${period.remark}',
+                            style: GoogleFonts.poppins(
+                              fontSize: isSmallScreen ? 11 : 12,
+                              fontStyle: FontStyle.italic,
+                              color: cardTheme.textColor.withOpacity(0.7),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                if (period.status == PeriodStatus.ongoing)
+                if (finalStatus == PeriodStatus.ongoing)
                   Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Container(
+                    padding: const EdgeInsets.only(top: 10.0),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: cardTheme.color.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'IN PROGRESS',
-                        style: GoogleFonts.poppins(
-                          color: cardTheme.color,
-                          fontWeight: FontWeight.bold,
-                          fontSize: isSmallScreen ? 11 : 12,
+                        gradient: LinearGradient(
+                          colors: [
+                            cardTheme.color,
+                            cardTheme.color.withOpacity(0.7),
+                          ],
                         ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: cardTheme.color.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.play_arrow, size: 14, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            'IN PROGRESS',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: isSmallScreen ? 10 : 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -214,7 +295,6 @@ class ClassPeriodCard extends StatelessWidget {
 
   void _showRemarkDialog(BuildContext context) {
     final remarkController = TextEditingController(text: period.remark);
-
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -222,37 +302,90 @@ class ClassPeriodCard extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Text(
-            'Add Remark',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Icon(Icons.edit_note, color: Colors.blue.shade600, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Add Remark',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
           content: TextField(
             controller: remarkController,
             autofocus: true,
             maxLines: 4,
-            style: GoogleFonts.poppins(),
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
             decoration: InputDecoration(
               hintText: "Enter notes for this period...",
+              hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
           ),
           actions: [
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               onPressed: () => Navigator.of(dialogContext).pop(),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Save'),
               onPressed: () {
                 onRemarkSaved(remarkController.text.trim());
                 Navigator.of(dialogContext).pop();
               },
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade600, Colors.purple.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Text(
+                  'Save',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ),
           ],
         );
@@ -260,31 +393,43 @@ class ClassPeriodCard extends StatelessWidget {
     );
   }
 
-  _CardThemeData _getThemeForStatus(PeriodStatus status) {
+  _CardThemeData _getThemeForStatus(PeriodStatus status, String subject) {
+    if (subject.contains('Lunch')) {
+      return _CardThemeData(
+        color: Colors.orange.shade600,
+        gradientColors: [Colors.orange.shade400, Colors.yellow.shade400],
+        icon: Icons.restaurant_menu,
+        textColor: Colors.black87,
+      );
+    }
     switch (status) {
       case PeriodStatus.completed:
         return _CardThemeData(
-          color: Colors.grey.shade500,
+          color: Colors.green.shade500,
+          gradientColors: [Colors.green.shade400, Colors.teal.shade400],
           icon: Icons.check_circle_outline,
-          textColor: Colors.black54,
+          textColor: Colors.black87,
+        );
+      case PeriodStatus.missed:
+        return _CardThemeData(
+          color: Colors.red.shade400,
+          gradientColors: [Colors.red.shade300, Colors.pink.shade300],
+          icon: Icons.cancel_outlined,
+          textColor: Colors.black87,
         );
       case PeriodStatus.ongoing:
         return _CardThemeData(
           color: Colors.indigo.shade600,
+          gradientColors: [Colors.indigo.shade500, Colors.blue.shade500],
           icon: Icons.timelapse_rounded,
           textColor: Colors.black87,
         );
       case PeriodStatus.upcoming:
         return _CardThemeData(
           color: Colors.amber.shade800,
+          gradientColors: [Colors.amber.shade600, Colors.orange.shade600],
           icon: Icons.notifications_none_rounded,
           textColor: Colors.black87,
-        );
-      case PeriodStatus.missed:
-        return _CardThemeData(
-          color: Colors.red.shade400,
-          icon: Icons.cancel_outlined,
-          textColor: Colors.grey.shade700,
         );
     }
   }
@@ -292,11 +437,13 @@ class ClassPeriodCard extends StatelessWidget {
 
 class _CardThemeData {
   final Color color;
+  final List<Color> gradientColors;
   final IconData icon;
   final Color textColor;
 
   _CardThemeData({
     required this.color,
+    required this.gradientColors,
     required this.icon,
     required this.textColor,
   });
