@@ -1,12 +1,19 @@
+import 'package:classmonitor/models/classesDataModel.dart';
 import 'package:classmonitor/utils/baseUrl.dart'; // Imports ApiConfig and myApiConfig
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'dart:io'; // Import for SocketException (used in DioExceptionType.unknown check)
+import 'dart:io'; // Import for SocketException
 
 import '../models/user_account.dart'; // UserAccount model definition
 import '../models/class_stat.dart'; // ClassStat model definition
 import 'package:flutter/material.dart'; // For debugPrint
+
+class _Endpoints {
+  static const getPeriods = '/student/submit_class_stat.php';
+  static const submitClassStat = '/student/submit_class_stat.php';
+  static const adminSubmitClassStat = '/admin/submit_class_stat.php';
+}
 
 enum UserRole { student, teacher, superAdmin }
 
@@ -20,6 +27,7 @@ class ApiService {
   static const String _usernameKey = 'user_username';
   static const String _isLoggedInKey = 'isUserLoggedIn';
 
+  /// Initializes the Dio instances with base configuration and interceptors.
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
@@ -28,56 +36,80 @@ class ApiService {
       baseUrl: myApiConfig.baseUrl, // e.g., 'https://classmonitor.aucseapp.in/'
       headers: {
         'Content-Type': myApiConfig.contentType, // e.g., 'application/json'
-        if (token != null)
-          'Authorization': 'Bearer $token', // Set token if already present
+        if (token != null) 'Authorization': 'Bearer $token',
       },
-      connectTimeout: const Duration(
-        seconds: 15,
-      ), // 15 seconds connection timeout
-      receiveTimeout: const Duration(seconds: 15), // 15 seconds receive timeout
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
     );
 
     _timeApiDio.options = BaseOptions(
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     );
+
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          debugPrint('🚀 ${options.method} ${options.uri}');
+          debugPrint('📤 Request Data: ${options.data}');
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          debugPrint('✅ ${response.statusCode} ${response.requestOptions.uri}');
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          debugPrint(
+            '❌ ${error.response?.statusCode} ${error.requestOptions.uri}',
+          );
+          debugPrint('❌ Error: ${error.message}');
+          handler.next(error);
+        },
+      ),
+    );
     debugPrint("ApiService initialized. Base URL: ${myApiConfig.baseUrl}");
   }
 
-  // --- Centralized Error Handling for DioExceptions ---
+  /// Centralized error handling for Dio exceptions.
   static String _handleDioError(DioException e) {
     if (e.response != null) {
       final dynamic errorData = e.response?.data;
       if (errorData is Map && errorData.containsKey('error')) {
-        return errorData['error']
-            as String; // Specific error message from server
+        return errorData['error'] as String;
       }
-      if (e.response?.statusCode == 401) {
-        return 'Invalid username or password.';
-      } else if (e.response?.statusCode == 400) {
-        return 'Missing or invalid login details.';
-      } else if (e.response?.statusCode == 404) {
-        return 'Requested endpoint not found on server.';
-      } else if (e.response?.statusCode == 500) {
-        return 'Server internal error. Please try again later.';
+      switch (e.response?.statusCode) {
+        case 401:
+          return 'Invalid username or password.';
+        case 400:
+          return 'Missing or invalid login details.';
+        case 404:
+          return 'Requested endpoint not found on server.';
+        case 500:
+          return 'Server internal error. Please try again later.';
+        default:
+          return 'Server Error (${e.response?.statusCode}): An unknown server error occurred.';
       }
-      return 'Server Error (${e.response?.statusCode}): An unknown server error occurred.';
-    } else if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout) {
-      return 'Connection timed out. Please check your internet connection.';
-    } else if (e.type == DioExceptionType.connectionError) {
-      return 'Network connection error. Please check your internet connection.';
-    } else if (e.type == DioExceptionType.cancel) {
-      return 'Request cancelled.';
-    } else if (e.type == DioExceptionType.unknown &&
-        e.error is SocketException) {
-      return 'No internet connection. Please check your network.';
     }
-    return 'Network Error: ${e.message ?? 'An unexpected network error occurred.'}';
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
+        return 'Connection timed out. Please check your internet connection.';
+      case DioExceptionType.connectionError:
+        return 'Network connection error. Please check your internet connection.';
+      case DioExceptionType.cancel:
+        return 'Request cancelled.';
+      case DioExceptionType.unknown:
+        if (e.error is SocketException) {
+          return 'No internet connection. Please check your network.';
+        }
+        return 'Network Error: ${e.message ?? 'An unexpected network error occurred.'}';
+      default:
+        return 'Network Error: ${e.message ?? 'An unexpected error occurred.'}';
+    }
   }
 
-  // --- Retry Mechanism for API Calls ---
+  /// Retries an API call up to [maxAttempts] times with a [delay] between attempts.
   static Future<dynamic> _withRetry(
     Future<dynamic> Function() apiCall,
     int maxAttempts, {
@@ -89,8 +121,6 @@ class ApiService {
         return await apiCall();
       } on DioException catch (e) {
         attempts++;
-        // Re-throw immediately for client errors (4xx) on the last attempt,
-        // or for any error if max attempts are reached.
         if (attempts == maxAttempts ||
             (e.response != null &&
                 e.response!.statusCode! >= 400 &&
@@ -106,15 +136,15 @@ class ApiService {
     throw Exception('Max retry attempts reached for API call.');
   }
 
-  // --- Time Validation (Currently Bypassed for Development) ---
+  /// Validates login time using an external time API (bypassed for development).
   static Future<void> _validateLoginTime() async {
     debugPrint('Skipping time validation for testing.');
-    return; // Temporarily bypass for easier development
+    return; // Bypass for development
 
     DateTime networkTime;
     try {
       final response = await _timeApiDio.get(
-        'http://worldtimeapi.org/api/timezone/Asia/Kolkata', // Use a reliable time API
+        'http://worldtimeapi.org/api/timezone/Asia/Kolkata',
       );
       if (response.statusCode == 200 && response.data['datetime'] != null) {
         networkTime = DateTime.parse(response.data['datetime']);
@@ -129,7 +159,6 @@ class ApiService {
       );
     }
 
-    // Check if network time is significantly different from device time
     if ((networkTime.difference(DateTime.now()).abs()) >
         const Duration(minutes: 2)) {
       throw Exception(
@@ -137,20 +166,18 @@ class ApiService {
       );
     }
 
-    // Check if it's a weekday (Monday=1, Friday=5). Allows logins Mon-Fri.
     if (networkTime.weekday > DateTime.friday) {
       throw Exception('Login is only allowed from Monday to Friday.');
     }
   }
 
-  // --- Main Login Method ---
+  /// Authenticates a user and returns their role.
   static Future<UserRole?> login(String username, String password) async {
     if (username.isEmpty || password.isEmpty) {
       debugPrint('Login attempt with empty username or password.');
       throw Exception('Username and password cannot be empty.');
     }
 
-    // 1. Attempt Admin login first
     try {
       debugPrint('Attempting Admin login for: $username');
       final adminLoginResponse = await _withRetry(
@@ -169,46 +196,31 @@ class ApiService {
           adminLoginResponse.data is Map &&
           adminLoginResponse.data['token'] != null) {
         final token = adminLoginResponse.data['token'];
-
-        // --- CORRECTED FLOW FOR ADMIN: Save username/token FIRST ---
-        // Temporarily save session so getCurrentUserDetails can retrieve username
-        await _saveSession(
-          token,
-          username,
-          UserRole.superAdmin,
-        ); // Assume superAdmin initially
-
+        await _saveSession(token, username, UserRole.superAdmin);
         UserAccount userDetails;
         try {
-          userDetails =
-              await getCurrentUserDetails(); // Fetch full admin details using saved username
+          userDetails = await getCurrentUserDetails();
           debugPrint(
             'Successfully fetched Admin user details: ${userDetails.toJson()}',
           );
-          // Important: Re-save session with the actual role if getCurrentUserDetails returned a more specific one
           await _saveSession(token, username, userDetails.role);
         } catch (e) {
           debugPrint(
             'WARNING: Failed to get full admin user details after token. Assuming superAdmin. Error: $e',
           );
-          // If fetching admin details fails, assume superAdmin based on initial successful token
-          // The session is already saved, no need to resave unless role changed.
           userDetails = UserAccount(
             username: username,
             dept: '',
             prog: '',
             sem: '',
-            sec: '', // Default values for missing details
+            sec: '',
             batch: '',
-            role: UserRole
-                .superAdmin, // Confirm superAdmin as the default fallback
+            role: UserRole.superAdmin,
           );
         }
         return userDetails.role;
       }
     } on DioException catch (e) {
-      // If it's a client error (e.g., 401 for wrong admin creds), don't re-throw,
-      // just log and proceed to try student/teacher login.
       if (e.response != null &&
           e.response!.statusCode! >= 400 &&
           e.response!.statusCode! < 500) {
@@ -216,7 +228,6 @@ class ApiService {
           'Admin login failed with client error (${e.response?.statusCode}). Trying student/teacher login...',
         );
       } else {
-        // Re-throw server errors (5xx) or network errors directly
         throw Exception(_handleDioError(e));
       }
     } catch (e, stackTrace) {
@@ -225,16 +236,14 @@ class ApiService {
       );
     }
 
-    // 2. Attempt Student/Teacher login via the /student/login.php endpoint
     try {
-      await _validateLoginTime(); // Validate time before student/teacher login
-
+      await _validateLoginTime();
       debugPrint(
         'Attempting Student/Teacher login for: $username via /student/login.php',
       );
       final commonLoginResponse = await _withRetry(
         () => _dio.post(
-          '/student/login.php', // This endpoint is used for BOTH student and teacher
+          '/student/login.php',
           data: {'username': username, 'password': password},
         ),
         3,
@@ -246,44 +255,31 @@ class ApiService {
           commonLoginResponse.data is Map &&
           commonLoginResponse.data['token'] != null) {
         final token = commonLoginResponse.data['token'];
-
-        // --- CORRECTED FLOW FOR STUDENT/TEACHER: Save username/token FIRST ---
-        // Temporarily save session assuming 'student' role. This ensures username is available.
-        await _saveSession(
-          token,
-          username,
-          UserRole.student,
-        ); // Will be updated by actual role
-
+        await _saveSession(token, username, UserRole.student);
         UserAccount userDetails;
         try {
-          userDetails =
-              await getCurrentUserDetails(); // Now username is available in prefs
+          userDetails = await getCurrentUserDetails();
           debugPrint(
             'Successfully fetched Student/Teacher user details: ${userDetails.toJson()}',
           );
         } catch (e) {
           debugPrint(
-            'ERROR: Failed to get user details after token acquisition. Clearing session.: $e',
+            'ERROR: Failed to get user details after token acquisition. Clearing session: $e',
           );
-          await logout(); // Log out because we can't get crucial user details (like actual role)
+          await logout();
           throw Exception(
             'Login successful, but failed to retrieve user role. Please try again.',
           );
         }
-
-        // Now save the session again with the *actual* role fetched from userDetails
         await _saveSession(token, username, userDetails.role);
         return userDetails.role;
       }
       debugPrint(
         'Invalid login response from /student/login.php (no token or bad status): ${commonLoginResponse.data}',
       );
-      return null; // Login failed for student/teacher
+      return null;
     } on DioException catch (e) {
-      throw Exception(
-        _handleDioError(e),
-      ); // Handle Dio errors for student/teacher login
+      throw Exception(_handleDioError(e));
     } catch (e, stackTrace) {
       debugPrint(
         'Unexpected student/teacher login error: $e\nStackTrace: $stackTrace',
@@ -292,7 +288,7 @@ class ApiService {
     }
   }
 
-  // --- Session Management ---
+  /// Saves user session data to SharedPreferences.
   static Future<void> _saveSession(
     String token,
     String username,
@@ -303,27 +299,28 @@ class ApiService {
     await prefs.setString(_usernameKey, username);
     await prefs.setString(_roleKey, role.name);
     await prefs.setBool(_isLoggedInKey, true);
-    _dio.options.headers['Authorization'] =
-        'Bearer $token'; // Always update Dio's header for subsequent calls
+    _dio.options.headers['Authorization'] = 'Bearer $token';
     debugPrint(
-      'Session saved: Token (masked)=..., Username=$username, Role=${role.name}, IsLoggedIn=true',
+      'Session saved: Username=$username, Role=${role.name}, IsLoggedIn=true',
     );
   }
 
+  /// Logs out the user and clears session data.
   static Future<void> logout() async {
-    // THIS IS YOUR KEY DEBUG PRINT! Check your console for this exact line and its stack trace.
     debugPrint('*** LOGOUT CALLED FROM: ${StackTrace.current} ***');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Clears all stored session data
-    _dio.options.headers.remove('Authorization'); // Remove auth header
+    await prefs.clear();
+    _dio.options.headers.remove('Authorization');
     debugPrint('User logged out. Session cleared.');
   }
 
+  /// Checks if a user is logged in.
   static Future<bool> isUserLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_isLoggedInKey) ?? false;
   }
 
+  /// Retrieves the user's role from SharedPreferences.
   static Future<UserRole?> getRole() async {
     final prefs = await SharedPreferences.getInstance();
     final roleString = prefs.getString(_roleKey);
@@ -335,35 +332,26 @@ class ApiService {
         debugPrint(
           'Error parsing stored role "$roleString", defaulting to null. Error: $e',
         );
-        return null; // Return null if stored role string is not a valid enum value
+        return null;
       }
     }
     return null;
   }
 
-  // --- User Account Management (Generic and Admin Specific) ---
+  /// Fetches the current user's details.
   static Future<UserAccount> getCurrentUserDetails() async {
     final prefs = await SharedPreferences.getInstance();
-    final username = prefs.getString(
-      _usernameKey,
-    ); // Retrieve username from saved session
+    final username = prefs.getString(_usernameKey);
     if (username == null || username.isEmpty) {
       throw Exception(
-        'Username not found in session for getCurrentUserDetails. User might not be logged in or session is corrupt.',
+        'Username not found in session. User might not be logged in.',
       );
     }
     try {
-      // This endpoint is assumed to provide details for student, teacher, or admin based on the token
-      // and/or the username provided.
       final response = await _withRetry(
         () => _dio.post(
-          '/student/get_user_details.php', // Use this endpoint for all user detail fetching
-          data: {'username': username}, // Send username in the body
-          // --- IMPORTANT: READ BELOW ---
-          // If your backend relies solely on the JWT token in the header and
-          // ignores/is confused by the username in the body for this endpoint,
-          // then COMMENT OUT the 'data: {'username': username}' line above.
-          // Test with Postman first to confirm if the username in the body is needed or not.
+          '/student/get_user_details.php',
+          data: {'username': username},
         ),
         3,
       );
@@ -383,6 +371,7 @@ class ApiService {
     }
   }
 
+  /// Fetches all user accounts (admin only).
   static Future<List<UserAccount>> getAllUsers() async {
     try {
       final response = await _withRetry(
@@ -401,6 +390,7 @@ class ApiService {
     }
   }
 
+  /// Creates a new user account (admin only).
   static Future<bool> createUser(UserAccount user) async {
     try {
       final response = await _withRetry(
@@ -413,7 +403,7 @@ class ApiService {
     }
   }
 
-  // -- UPDATE USER ---
+  /// Updates an existing user account (admin only).
   static Future<bool> updateUser(UserAccount user) async {
     try {
       final response = await _withRetry(
@@ -426,7 +416,7 @@ class ApiService {
     }
   }
 
-  // --- DELETE USER ---
+  /// Deletes a user account by ID (admin only).
   static Future<bool> deleteUser(String account_id) async {
     try {
       final response = await _withRetry(
@@ -442,57 +432,302 @@ class ApiService {
     }
   }
 
-  // --- Class Statistics Management ---
+  /// Fetches class statistics for a given date, user role, and user context.
   static Future<List<ClassStat>> fetchClassStatsByDate(
     DateTime date, {
-    required bool forAdmin,
+    required UserRole userRole,
+    required UserAccount user,
+    CancelToken? cancelToken,
   }) async {
-    final endpoint = forAdmin
-        ? '/admin/submit_class_stat.php'
-        : '/student/submit_class_stat.php';
     try {
+      if (user.prog == null || user.prog!.isEmpty)
+        throw Exception('Invalid user program information');
+      if (user.dept == null || user.dept!.isEmpty)
+        throw Exception('Invalid user department information');
+      if (user.sem == null || user.sem!.isEmpty)
+        throw Exception('Invalid user semester information');
+      if (user.sec == null || user.sec!.isEmpty)
+        throw Exception('Invalid user section information');
+      if (user.batch == null || user.batch!.isEmpty)
+        throw Exception('Invalid user batch information');
+
+      final endpoint = userRole == UserRole.superAdmin
+          ? _Endpoints.adminSubmitClassStat
+          : _Endpoints.submitClassStat;
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
       final response = await _withRetry(
-        () => _dio.get(
+        () => _dio.post(
           endpoint,
-          queryParameters: {'date': DateFormat('yyyy-MM-dd').format(date)},
+          data: {
+            'date': formattedDate,
+            'prog': user.prog!.trim(),
+            'dept': user.dept!.trim(),
+            'sem': user.sem!.trim(),
+            'section': user.sec!.trim(),
+            'batch': user.batch!.trim(),
+          },
+          cancelToken: cancelToken,
         ),
         3,
       );
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['class_stats'] != null) {
-        final List data = response.data['class_stats'];
-        return data.map((json) => ClassStat.fromJson(json)).toList();
+
+      debugPrint('Raw class stats response from $endpoint: ${response.data}');
+
+      if (response.statusCode == 200) {
+        List<dynamic>? statsData;
+        if (response.data is Map<String, dynamic> &&
+            response.data['class_stats'] is List) {
+          statsData = response.data['class_stats'];
+        } else if (response.data is List) {
+          statsData = response.data;
+        }
+
+        if (statsData != null && statsData.isNotEmpty) {
+          return statsData
+              .map((json) {
+                try {
+                  return ClassStat.fromJson(json as Map<String, dynamic>);
+                } catch (e) {
+                  debugPrint('⚠️ Error parsing class stat: $e');
+                  return null;
+                }
+              })
+              .whereType<ClassStat>()
+              .toList();
+        }
       }
+      debugPrint('No class stats found or invalid response format.');
       return [];
     } on DioException catch (e) {
+      debugPrint('❌ DioException in fetchClassStatsByDate: ${e.message}');
       throw Exception(_handleDioError(e));
+    } catch (e, stackTrace) {
+      debugPrint(
+        '❌ General error in fetchClassStatsByDate: $e\nStackTrace: $stackTrace',
+      );
+      throw Exception('Failed to fetch class stats: $e');
     }
   }
 
-  static Future<bool> upsertClassStat(
-    ClassStat stat, {
-    required bool forAdmin,
+  /// Fetches class periods for a given date and user context.
+  static Future<List<ClassPeriod>> fetchPeriodsForDate(
+    DateTime date, {
+    required UserAccount user,
+    CancelToken? cancelToken,
   }) async {
-    final endpoint = forAdmin
-        ? '/admin/submit_class_stat.php'
-        : '/student/submit_class_stat.php';
     try {
-      final Map<String, dynamic> data = stat.toJson();
-      if (forAdmin) {
-        data['mode'] =
-            'upsert'; // Assuming the backend expects 'mode' for admin upsert
-      }
+      if (user.prog == null || user.prog!.isEmpty)
+        throw Exception('Invalid user program information');
+      if (user.dept == null || user.dept!.isEmpty)
+        throw Exception('Invalid user department information');
+      if (user.sem == null || user.sem!.isEmpty)
+        throw Exception('Invalid user semester information');
+      if (user.sec == null || user.sec!.isEmpty)
+        throw Exception('Invalid user section information');
+      if (user.batch == null || user.batch!.isEmpty)
+        throw Exception('Invalid user batch information');
+
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
       final response = await _withRetry(
-        () => _dio.post(endpoint, data: data),
+        () => _dio.post(
+          _Endpoints.getPeriods,
+          data: {
+            'date': formattedDate,
+            'prog': user.prog!.trim(),
+            'dept': user.dept!.trim(),
+            'sem': user.sem!.trim(),
+            'section': user.sec!.trim(),
+            'batch': user.batch!.trim(),
+          },
+          cancelToken: cancelToken,
+        ),
         3,
       );
-      return response.statusCode == 200;
+
+      debugPrint(
+        'Raw periods response from ${_Endpoints.getPeriods}: ${response.data}',
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic>? periodsData;
+        if (response.data is Map<String, dynamic> &&
+            response.data['periods'] is List) {
+          periodsData = response.data['periods'];
+        } else if (response.data is List) {
+          periodsData = response.data;
+        }
+
+        if (periodsData != null && periodsData.isNotEmpty) {
+          return periodsData
+              .map((json) {
+                try {
+                  return ClassPeriod.fromJson(json as Map<String, dynamic>);
+                } catch (e) {
+                  debugPrint('⚠️ Error parsing period: $e');
+                  return null;
+                }
+              })
+              .whereType<ClassPeriod>()
+              .toList();
+        }
+      }
+
+      // Fallback to default periods if API returns no valid data
+      debugPrint('No valid periods found, returning default periods');
+      return List.generate(8, (index) {
+        final startTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          9 + index,
+          0,
+        );
+        final endTime = startTime.add(const Duration(hours: 1));
+        return ClassPeriod(
+          subject: 'P${index + 1}',
+          startTime: startTime,
+          endTime: endTime,
+          status: _getPeriodStatus(startTime, endTime, date),
+          remark: '',
+          attendanceStatus: false,
+        );
+      });
     } on DioException catch (e) {
+      debugPrint('❌ DioException in fetchPeriodsForDate: ${e.message}');
       throw Exception(_handleDioError(e));
+    } catch (e, stackTrace) {
+      debugPrint(
+        '❌ General error in fetchPeriodsForDate: $e\nStackTrace: $stackTrace',
+      );
+      throw Exception('Failed to fetch periods: $e');
     }
   }
 
+  /// Determines the status of a class period based on its start and end times.
+  static PeriodStatus _getPeriodStatus(
+    DateTime start,
+    DateTime end,
+    DateTime selectedDate,
+  ) {
+    final now = DateTime.now();
+    final isToday =
+        selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
+
+    if (!isToday) {
+      return selectedDate.isBefore(now)
+          ? PeriodStatus.completed
+          : PeriodStatus.upcoming;
+    }
+
+    if (now.isBefore(start)) return PeriodStatus.upcoming;
+    if (now.isAfter(end)) return PeriodStatus.completed;
+    return PeriodStatus.ongoing;
+  }
+
+  /// Creates or updates a class attendance statistic for the day.
+  static Future<bool> upsertClassStat(
+    ClassStat stat, {
+    required UserRole userRole,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      if (stat.date.isEmpty) throw Exception('Date is required');
+      if (stat.prog.isEmpty) throw Exception('Program is required');
+      if (stat.dept.isEmpty) throw Exception('Department is required');
+      if (stat.sem.isEmpty) throw Exception('Semester is required');
+      if (stat.section.isEmpty) throw Exception('Section is required');
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_tokenKey);
+      if (token == null || token.isEmpty) {
+        debugPrint('❌ No valid token found in session.');
+        throw Exception('User is not authenticated. Please log in again.');
+      }
+
+      final endpoint = userRole == UserRole.superAdmin
+          ? _Endpoints.adminSubmitClassStat
+          : _Endpoints.submitClassStat;
+      final submissionData = stat.toJson();
+
+      // Generate marking string for attended periods (e.g., 'p1.p3.p5')
+      final List<String> attendedPeriods = [];
+      for (int i = 1; i <= 8; i++) {
+        if (submissionData['p$i'] == 1) {
+          attendedPeriods.add('p$i');
+        }
+      }
+      final String markingString = attendedPeriods.join('.');
+
+      submissionData['last_entry'] = DateFormat(
+        'yyyy-MM-dd HH:mm:ss',
+      ).format(DateTime.now());
+
+      if (userRole == UserRole.student) {
+        submissionData['cr_marking'] = markingString;
+        submissionData['prof_marking'] = stat.profMarking ?? '';
+      } else if (userRole == UserRole.teacher ||
+          userRole == UserRole.superAdmin) {
+        submissionData['prof_marking'] = markingString;
+        submissionData['cr_marking'] = stat.crMarking ?? '';
+      }
+
+      debugPrint(
+        '📤 Submitting class stat to $endpoint with data: $submissionData',
+      );
+
+      final response = await _withRetry(
+        () =>
+            _dio.put(endpoint, data: submissionData, cancelToken: cancelToken),
+        3,
+      );
+
+      debugPrint('✅ Raw upsert response from $endpoint: ${response.data}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is Map<String, dynamic>) {
+          final responseData = response.data as Map<String, dynamic>;
+          final success = responseData['success'];
+          final status = responseData['status']?.toString().toLowerCase();
+          if (success == true ||
+              success == 'true' ||
+              status == 'success' ||
+              status == 'ok' ||
+              status == 'updated' ||
+              status == 'inserted') {
+            debugPrint('✅ Class stat upserted successfully');
+            return true;
+          } else {
+            final message =
+                responseData['message'] ??
+                responseData['error'] ??
+                'Unknown error from server';
+            debugPrint('❌ Server reported failure: $message');
+            return false;
+          }
+        } else {
+          debugPrint(
+            '❌ Invalid response format: Expected Map, got ${response.data.runtimeType}',
+          );
+          return false;
+        }
+      }
+      debugPrint('❌ Invalid response status: ${response.statusCode}');
+      return false;
+    } on DioException catch (e) {
+      debugPrint('❌ DioException in upsertClassStat: ${e.message}');
+      throw Exception(_handleDioError(e));
+    } catch (e, stackTrace) {
+      debugPrint(
+        '❌ General error in upsertClassStat: $e\nStackTrace: $stackTrace',
+      );
+      throw Exception('Failed to save data: $e');
+    }
+  }
+
+  /// Fetches available departments.
   static Future<List<String>> getDepartments() async {
     try {
       final response = await _withRetry(
@@ -511,6 +746,7 @@ class ApiService {
     }
   }
 
+  /// Fetches programs for a given department.
   static Future<List<String>> getPrograms(String department) async {
     try {
       final response = await _withRetry(
@@ -532,6 +768,7 @@ class ApiService {
     }
   }
 
+  /// Fetches semesters for a given department and program.
   static Future<List<String>> getSemesters(
     String department,
     String program,
@@ -556,6 +793,7 @@ class ApiService {
     }
   }
 
+  /// Fetches sections for a given department, program, and semester.
   static Future<List<String>> getSections(
     String department,
     String program,
@@ -585,6 +823,7 @@ class ApiService {
     }
   }
 
+  /// Fetches users based on academic filters.
   static Future<List<UserAccount>> getUsersByFilters(
     String department,
     String program,
@@ -613,6 +852,55 @@ class ApiService {
       return [];
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
+    }
+  }
+}
+
+/// Extension to simplify accessing period data from ClassStat.
+extension ClassStatExtension on ClassStat {
+  String getRemark(int periodNumber) {
+    switch (periodNumber) {
+      case 1:
+        return p1Remarks;
+      case 2:
+        return p2Remarks;
+      case 3:
+        return p3Remarks;
+      case 4:
+        return p4Remarks;
+      case 5:
+        return p5Remarks;
+      case 6:
+        return p6Remarks;
+      case 7:
+        return p7Remarks;
+      case 8:
+        return p8Remarks;
+      default:
+        return '';
+    }
+  }
+
+  int getPeriodStatus(int periodNumber) {
+    switch (periodNumber) {
+      case 1:
+        return p1;
+      case 2:
+        return p2;
+      case 3:
+        return p3;
+      case 4:
+        return p4;
+      case 5:
+        return p5;
+      case 6:
+        return p6;
+      case 7:
+        return p7;
+      case 8:
+        return p8;
+      default:
+        return 0;
     }
   }
 }

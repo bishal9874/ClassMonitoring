@@ -308,78 +308,84 @@ class _StudentDashboardState extends State<StudentDashboard> {
               Icons.group,
               isSmallScreen,
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: isSmallScreen ? 6.0 : 8.0,
-                horizontal: isSmallScreen ? 4.0 : 8.0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.date_range,
-                        size: isSmallScreen ? 18 : 20,
-                        color: const Color(0xFF4a90e2),
-                      ),
-                      SizedBox(width: isSmallScreen ? 6 : 8),
-                      Text(
-                        'Batch:',
-                        style: GoogleFonts.poppins(
-                          fontSize: isSmallScreen ? 14 : 16,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF2c3e50),
-                        ),
-                      ),
-                    ],
-                  ),
-                  DropdownButton<int>(
-                    value: _selectedBatch,
-                    hint: Text(
-                      'Select Batch',
-                      style: GoogleFonts.poppins(
-                        fontSize: isSmallScreen ? 14 : 16,
-                        color: const Color(0xFF7f8c8d),
-                      ),
-                    ),
-                    items: List.generate(
-                      currentYear - 2019 + 1,
-                      (index) => DropdownMenuItem<int>(
-                        value: 2019 + index,
-                        child: Text(
-                          '${2019 + index}',
-                          style: GoogleFonts.poppins(
-                            fontSize: isSmallScreen ? 14 : 16,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF7f8c8d),
-                          ),
-                        ),
-                      ),
-                    ),
-                    onChanged: (int? newValue) {
-                      setState(() {
-                        _selectedBatch = newValue;
-                      });
-                    },
-                    underline: Container(
-                      height: 1,
-                      color: const Color(0xFF4a90e2),
-                    ),
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: Color(0xFF4a90e2),
-                    ),
-                    style: GoogleFonts.poppins(
-                      fontSize: isSmallScreen ? 14 : 16,
-                      color: const Color(0xFF7f8c8d),
-                    ),
-                    dropdownColor: Colors.white.withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ],
-              ),
+            _buildDetailRow(
+              'Section:',
+              _currentUser!.batch,
+              Icons.calendar_month,
+              isSmallScreen,
             ),
+            // Padding(
+            //   padding: EdgeInsets.symmetric(
+            //     vertical: isSmallScreen ? 6.0 : 8.0,
+            //     horizontal: isSmallScreen ? 4.0 : 8.0,
+            //   ),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       Row(
+            //         children: [
+            //           Icon(
+            //             Icons.date_range,
+            //             size: isSmallScreen ? 18 : 20,
+            //             color: const Color(0xFF4a90e2),
+            //           ),
+            //           SizedBox(width: isSmallScreen ? 6 : 8),
+            //           Text(
+            //             'Batch:',
+            //             style: GoogleFonts.poppins(
+            //               fontSize: isSmallScreen ? 14 : 16,
+            //               fontWeight: FontWeight.w500,
+            //               color: const Color(0xFF2c3e50),
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //       DropdownButton<int>(
+            //         value: _selectedBatch,
+            //         hint: Text(
+            //           'Select Batch',
+            //           style: GoogleFonts.poppins(
+            //             fontSize: isSmallScreen ? 14 : 16,
+            //             color: const Color(0xFF7f8c8d),
+            //           ),
+            //         ),
+            //         items: List.generate(
+            //           currentYear - 2019 + 1,
+            //           (index) => DropdownMenuItem<int>(
+            //             value: 2019 + index,
+            //             child: Text(
+            //               '${2019 + index}',
+            //               style: GoogleFonts.poppins(
+            //                 fontSize: isSmallScreen ? 14 : 16,
+            //                 fontWeight: FontWeight.w400,
+            //                 color: const Color(0xFF7f8c8d),
+            //               ),
+            //             ),
+            //           ),
+            //         ),
+            //         onChanged: (int? newValue) {
+            //           setState(() {
+            //             _selectedBatch = newValue;
+            //           });
+            //         },
+            //         underline: Container(
+            //           height: 1,
+            //           color: const Color(0xFF4a90e2),
+            //         ),
+            //         icon: const Icon(
+            //           Icons.arrow_drop_down,
+            //           color: Color(0xFF4a90e2),
+            //         ),
+            //         style: GoogleFonts.poppins(
+            //           fontSize: isSmallScreen ? 14 : 16,
+            //           color: const Color(0xFF7f8c8d),
+            //         ),
+            //         dropdownColor: Colors.white.withOpacity(0.95),
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             SizedBox(height: isSmallScreen ? 24 : 30),
             ElevatedButton(
               onPressed: () {
@@ -388,7 +394,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   MaterialPageRoute(
                     builder: (context) => TimeLineScreen(
                       user: _currentUser!,
-                      selectedBatch: _selectedBatch,
+                      // selectedBatch: _selectedBatch,
                     ),
                   ),
                 );

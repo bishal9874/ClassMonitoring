@@ -9,7 +9,7 @@ class UserAccount {
   final String prog;
   final String sem;
   final String sec;
-  final String batch; // Corrected: Added the batch field
+  final String batch;
   final UserRole role;
 
   UserAccount({
@@ -20,9 +20,36 @@ class UserAccount {
     required this.prog,
     required this.sem,
     required this.sec,
-    required this.batch, // Corrected: Added to the constructor
+    required this.batch,
     required this.role,
   });
+
+  // --- CORRECTED `copyWith` METHOD ---
+  UserAccount copyWith({
+    String? accountId,
+    String? username,
+    String? password,
+    String? dept,
+    String? prog,
+    String? sem,
+    String? sec,
+    String? batch,
+    UserRole? role, // Corrected type from String? to UserRole?
+  }) {
+    return UserAccount(
+      // Now includes all fields from the class
+      accountId: accountId ?? this.accountId,
+      username: username ?? this.username, // Added missing required field
+      password: password ?? this.password,
+      dept: dept ?? this.dept,
+      prog: prog ?? this.prog,
+      sem: sem ?? this.sem,
+      sec: sec ?? this.sec,
+      batch: batch ?? this.batch,
+      role: role ?? this.role, // Now types match correctly
+    );
+  }
+  // --- END OF CORRECTION ---
 
   factory UserAccount.fromJson(Map<String, dynamic> json) {
     debugPrint('Parsing UserAccount from JSON: $json');
@@ -55,9 +82,7 @@ class UserAccount {
       prog: json['prog'] ?? 'N/A',
       sem: json['sem']?.toString() ?? 'N/A',
       sec: json['sec'] ?? 'N/A',
-      batch:
-          json['batch']?.toString() ??
-          'N/A', // Corrected: Parse the new batch field
+      batch: json['batch']?.toString() ?? 'N/A',
       role: role,
     );
   }
@@ -69,7 +94,7 @@ class UserAccount {
       'prog': prog,
       'sem': sem,
       'sec': sec,
-      'batch': batch, // Corrected: Add the batch field to the JSON output
+      'batch': batch,
       'role': role.name,
     };
     if (accountId != null && accountId!.isNotEmpty) {

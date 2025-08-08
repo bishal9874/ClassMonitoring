@@ -1,50 +1,102 @@
-import 'package:classmonitor/models/classesDataModel.dart'; // Ensure this path is correct
+// lib/data/data_models.dart
 
+import 'package:classmonitor/models/classesDataModel.dart';
+
+/// A utility class that provides a static list of default class periods.
 class DataModels {
-  // Make the list static so it belongs to the class itself, not an instance.
+  static List<ClassPeriod> get periods => _periods;
+
+  // --- Private Implementation Details ---
   static final List<ClassPeriod> _periods = [
-    ClassPeriod(
+    _createPeriod(
       subject: 'P1',
-      startTime: DateTime.now().copyWith(hour: 9, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 10, minute: 25, second: 0),
+      startHour: 9,
+      startMin: 30,
+      endHour: 10,
+      endMin: 25,
     ),
-    ClassPeriod(
+    _createPeriod(
       subject: 'P2',
-      startTime: DateTime.now().copyWith(hour: 10, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 11, minute: 25, second: 0),
+      startHour: 10,
+      startMin: 30,
+      endHour: 11,
+      endMin: 25,
     ),
-    ClassPeriod(
+    _createPeriod(
       subject: 'P3',
-      startTime: DateTime.now().copyWith(hour: 11, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 12, minute: 25, second: 0),
+      startHour: 11,
+      startMin: 30,
+      endHour: 12,
+      endMin: 25,
     ),
-    ClassPeriod(
-      subject: 'Lunch Break',
-      startTime: DateTime.now().copyWith(hour: 12, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 13, minute: 30, second: 0),
+    _createPeriod(
+      subject: 'P3',
+      startHour: 12,
+      startMin: 30,
+      endHour: 13,
+      endMin: 30,
     ),
-    ClassPeriod(
+    _createPeriod(
       subject: 'P5',
-      startTime: DateTime.now().copyWith(hour: 13, minute: 31, second: 0),
-      endTime: DateTime.now().copyWith(hour: 14, minute: 25, second: 0),
+      startHour: 13,
+      startMin: 31,
+      endHour: 14,
+      endMin: 25,
     ),
-    ClassPeriod(
+    _createPeriod(
       subject: 'P6',
-      startTime: DateTime.now().copyWith(hour: 14, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 15, minute: 25, second: 0),
+      startHour: 14,
+      startMin: 30,
+      endHour: 15,
+      endMin: 25,
     ),
-    ClassPeriod(
+    _createPeriod(
       subject: 'P7',
-      startTime: DateTime.now().copyWith(hour: 15, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 16, minute: 25, second: 0),
+      startHour: 15,
+      startMin: 30,
+      endHour: 16,
+      endMin: 25,
     ),
-    ClassPeriod(
+    _createPeriod(
       subject: 'P8',
-      startTime: DateTime.now().copyWith(hour: 16, minute: 30, second: 0),
-      endTime: DateTime.now().copyWith(hour: 17, minute: 35, second: 0),
+      startHour: 16,
+      startMin: 30,
+      endHour: 17,
+      endMin: 35,
     ),
   ];
 
-  // Create a public static getter to access the private list.
-  static List<ClassPeriod> get periods => _periods;
+  static ClassPeriod _createPeriod({
+    required String subject,
+    required int startHour,
+    required int startMin,
+    required int endHour,
+    required int endMin,
+  }) {
+    final now = DateTime.now();
+    final startTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      startHour,
+      startMin,
+    );
+    final endTime = DateTime(now.year, now.month, now.day, endHour, endMin);
+
+    return ClassPeriod(
+      subject: subject,
+      startTime: startTime,
+      endTime: endTime,
+      status: _getPeriodStatus(startTime, endTime),
+      remark: '',
+      attendanceStatus: false,
+    );
+  }
+
+  static PeriodStatus _getPeriodStatus(DateTime start, DateTime end) {
+    final now = DateTime.now();
+    if (now.isBefore(start)) return PeriodStatus.upcoming;
+    if (now.isAfter(end)) return PeriodStatus.completed;
+    return PeriodStatus.ongoing;
+  }
 }

@@ -1,35 +1,69 @@
-enum PeriodStatus { upcoming, ongoing, completed, missed }
+// file: lib/models/classesDataModel.dart
+
+enum PeriodStatus { completed, ongoing, upcoming, missed }
 
 class ClassPeriod {
   final String subject;
   final DateTime startTime;
   final DateTime endTime;
-  bool isManuallyCompleted;
-  String? remark;
+  final PeriodStatus status;
+  final String? remark;
+  final bool? attendanceStatus;
 
   ClassPeriod({
     required this.subject,
     required this.startTime,
     required this.endTime,
-    this.isManuallyCompleted = false,
+    required this.status,
     this.remark,
+    this.attendanceStatus,
   });
 
-  PeriodStatus get status {
-    final now = DateTime.now();
-    // Rule 1: If manually completed, it's always 'completed'.
-    if (isManuallyCompleted) {
-      return PeriodStatus.completed;
+  factory ClassPeriod.fromJson(Map<String, dynamic> json) {
+    return ClassPeriod(
+      subject: json['subject'] as String? ?? 'Unknown Subject',
+      startTime:
+          DateTime.tryParse(json['start_time'] as String? ?? '') ??
+          DateTime.now(),
+      endTime:
+          DateTime.tryParse(json['end_time'] as String? ?? '') ??
+          DateTime.now().add(const Duration(hours: 1)),
+      status: _parseStatus(json['status'] as String?),
+      remark: json['remark'] as String?,
+      attendanceStatus: json['attendance_status'] as bool?,
+    );
+  }
+
+  static PeriodStatus _parseStatus(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return PeriodStatus.completed;
+      case 'ongoing':
+        return PeriodStatus.ongoing;
+      case 'upcoming':
+        return PeriodStatus.upcoming;
+      case 'missed':
+        return PeriodStatus.missed;
+      default:
+        return PeriodStatus.upcoming;
     }
-    // Rule 2: If time has passed and it was never completed, it's 'missed'.
-    if (now.isAfter(endTime)) {
-      return PeriodStatus.missed;
-    }
-    // Rule 3: If within the time frame, it's 'ongoing'.
-    if (now.isAfter(startTime) && now.isBefore(endTime)) {
-      return PeriodStatus.ongoing;
-    }
-    // Rule 4: Otherwise, it must be 'upcoming'.
-    return PeriodStatus.upcoming;
+  }
+
+  ClassPeriod copyWith({
+    String? subject,
+    DateTime? startTime,
+    DateTime? endTime,
+    PeriodStatus? status,
+    String? remark,
+    bool? attendanceStatus,
+  }) {
+    return ClassPeriod(
+      subject: subject ?? this.subject,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      status: status ?? this.status,
+      remark: remark ?? this.remark,
+      attendanceStatus: attendanceStatus ?? this.attendanceStatus,
+    );
   }
 }
